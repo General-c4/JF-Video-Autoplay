@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <PluginVersion>1.1.1</PluginVersion>
+    <ReleaseCandidate>rc2</ReleaseCandidate>
+  </PropertyGroup>
+</Project>

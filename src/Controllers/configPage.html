@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Video Autoplay — Settings</title>
+  <style>
+    /* Keep changes self-contained to this config page */
+    #VideoAutoplayConfigPage .content-primary { direction: rtl; text-align: right; }
+    #VideoAutoplayConfigPage[data-lang="en"] .content-primary { direction: ltr; text-align: left; }
+
+    #VideoAutoplayConfigForm {
+      max-width: 980px;
+      margin-inline: auto;
+    }
+
+    #VideoAutoplayConfigPage .sectionTitleContainer {
+      margin-bottom: 12px;
+    }
+
+    #VideoAutoplayConfigPage .sectionTitle {
+      line-height: 1.35;
+    }
+
+    #VideoAutoplayConfigPage .inputContainer {
+      margin-top: 14px;
+    }
+
+    #VideoAutoplayConfigPage .fieldDescription {
+      margin-top: 8px;
+      line-height: 1.6;
+      opacity: 0.9;
+    }
+
+    /* Buttons: stacked, full-width, with comfortable spacing */
+    #VideoAutoplayConfigPage .va-actionButtons {
+      display: grid;
+      gap: 10px;
+    }
+
+    #VideoAutoplayConfigPage .va-actionButtons .emby-button {
+      width: 100%;
+    }
+
+    /* Make actions visually closer to screenshot (primary + danger) */
+    #btnInject {
+      background: #0288d1;
+      color: #fff;
+    }
+    #btnRemove {
+      background: #c62828;
+      color: #fff;
+    }
+
+    /* Info panel spacing */
+    #vaInfo {
+      padding: 12px 14px !important;
+      line-height: 1.7;
+    }
+    #vaInfo code {
+      direction: ltr;
+      unicode-bidi: bidi-override;
+      display: inline-block;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+    }
+
+    /* Footer */
+    #vaFooter {
+      margin-top: 14px;
+      opacity: 0.85;
+      font-size: 13px;
+      line-height: 1.6;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="VideoAutoplayConfigPage" data-role="page" class="page type-interior pluginConfigurationPage">
+    <div data-role="content">
+      <div class="content-primary">
+        <form id="VideoAutoplayConfigForm">
+          <div class="verticalSection verticalSection-extrabottompadding">
+            <div class="sectionTitleContainer flex align-items-center">
+              <h2 class="sectionTitle" id="t_title">Video Autoplay – الإعدادات</h2>
+            </div>
+
+            <div class="inputContainer">
+              <label class="inputLabel" id="t_langLabel">اللغة</label>
+              <select id="uiLanguage" class="emby-select">
+                <option value="ar">Arabic</option>
+                <option value="en">English</option>
+              </select>
+            </div>
+
+            <div class="inputContainer">
+              <label class="inputLabel" id="t_enabledLabel">مُفعّل</label>
+              <select id="enabled" class="emby-select">
+                <option value="true" id="t_enabledOn">تشغيل</option>
+                <option value="false" id="t_enabledOff">إيقاف</option>
+              </select>
+            </div>
+
+            <div class="inputContainer">
+              <label class="inputLabel" id="t_maxItemsLabel">الحد الأقصى للعناصر لكل نوع (1–10)</label>
+              <input is="emby-input" type="number" id="maxItems" min="1" max="10" step="1" class="emby-input" />
+            </div>
+
+            <div class="inputContainer">
+              <label class="inputLabel" id="t_autoplayLabel">التشغيل التلقائي</label>
+              <select id="autoplayMuted" class="emby-select">
+                <option value="true" id="t_autoplayMuted">بدون صوت (Muted)</option>
+                <option value="false" id="t_autoplaySound">مع الصوت</option>
+              </select>
+            </div>
+
+            <div class="inputContainer">
+              <label class="inputLabel" id="t_preferRemoteLabel">تفضيل Trailers عن بُعد</label>
+              <select id="preferRemoteTrailers" class="emby-select">
+                <option value="true" id="t_yes">مُفعّل</option>
+                <option value="false" id="t_no">غير مُفعّل</option>
+              </select>
+            </div>
+
+            <div class="sectionTitleContainer flex align-items-center">
+              <h3 class="sectionTitle sectionTitle-cards" id="t_ytSection">YouTube (إصلاح الخطأ 153)</h3>
+            </div>
+
+            <div class="inputContainer">
+              <label class="inputLabel" id="t_ytDirectLabel">استخدام yt-dlp لاستخراج رابط مباشر (موصى به)</label>
+              <select id="enableYtDirect" class="emby-select">
+                <option value="true" id="t_yes2">مُفعّل</option>
+                <option value="false" id="t_no2">غير مُفعّل</option>
+              </select>
+              <div class="fieldDescription" id="t_ytDirectDesc">
+                عند تفعيل هذا الخيار يتم تجاوز iframe الخاص بـ YouTube (الذي قد يظهر “مشاهدة الفيديو على YouTube” / الخطأ 153).
+              </div>
+            </div>
+
+            <div class="inputContainer">
+              <label class="inputLabel" id="t_ytPathLabel">المسار المطلق لملف yt-dlp</label>
+              <input is="emby-input" type="text" id="ytDlpPath" class="emby-input" autocomplete="off" placeholder="C:\ffmpeg\bin\yt-dlp.exe" />
+            </div>
+
+            <div class="inputContainer">
+              <label class="inputLabel" id="t_ytPreferMp4Label">تفضيل MP4 Progressive</label>
+              <select id="ytPreferMp4" class="emby-select">
+                <option value="true" id="t_yes3">نعم</option>
+                <option value="false" id="t_ytPreferMp4No">لا (HLS/DASH إذا لزم)</option>
+              </select>
+            </div>
+
+            <div class="inputContainer">
+              <label class="inputLabel" id="t_ytForce18Label">إجبار صيغة YouTube 18 (MP4 360p)</label>
+              <select id="ytForceFormat18" class="emby-select">
+                <option value="false" id="t_no3">لا</option>
+                <option value="true" id="t_ytForce18Yes">نعم (أعلى توافق)</option>
+              </select>
+            </div>
+
+            <div class="sectionTitleContainer flex align-items-center">
+              <h3 class="sectionTitle sectionTitle-cards" id="t_injectSection">الحقن في واجهة Jellyfin</h3>
+            </div>
+
+            <div class="inputContainer">
+              <label class="inputLabel" id="t_indexPathLabel">المسار الكامل لملف <code>index.html</code></label>
+              <input is="emby-input" type="text" id="indexHtmlPath" class="emby-input"
+                     placeholder="/volume1/docker/jellyfin/jellyfin-web/index.html" />
+            </div>
+
+            <div class="inputContainer">
+              <div class="va-actionButtons">
+                <button is="emby-button" id="btnProbe" type="button" class="raised block emby-button"><span id="t_btnProbe">فحص الحالة</span></button>
+                <button is="emby-button" id="btnInject" type="button" class="raised block emby-button"><span id="t_btnInject">حقن الآن</span></button>
+                <button is="emby-button" id="btnRemove" type="button" class="raised block emby-button"><span id="t_btnRemove">إزالة الوسم</span></button>
+                <button is="emby-button" id="btnInfo" type="button" class="raised block emby-button"><span id="t_btnInfo">تحديث معلومات المسار</span></button>
+              </div>
+            </div>
+
+            <div class="inputContainer">
+              <label class="inputLabel" id="t_statusLabel">الحالة</label>
+              <div id="vaStatus" style="margin-top:6px;"></div>
+            </div>
+
+            <div class="inputContainer">
+              <label class="inputLabel" id="t_infoLabel">معلومات</label>
+              <div id="vaInfo" class="paperList" style="padding:8px 12px;">
+                <div>BasePath: <code id="infoBasePath">—</code></div>
+                <div>Resolved Web Path: <code id="infoResolvedWeb">—</code></div>
+                <div><span id="t_infoIndex">Index.html</span>: <code id="infoIndex">—</code> <span id="infoExists" style="margin-inline-start:6px;"></span></div>
+              </div>
+            </div>
+
+            <div>
+              <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+                <span id="t_save">حفظ الإعدادات</span>
+              </button>
+            </div>
+
+            <div id="vaFooter">© 2026 - Developed by General-c4 | Version 0.0.0</div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script type="text/javascript">
+      (function () {
+        var pluginId = (window.PluginId || 'f8aab2db-7f0a-4c43-8b6c-9c9a1a3d9e01');
+        var pageSel  = '#VideoAutoplayConfigPage';
+        var formSel  = '#VideoAutoplayConfigForm';
+        var statusEl;
+
+        var I18N = {
+          ar: {
+            title: 'Video Autoplay – الإعدادات',
+            langLabel: 'اللغة',
+            enabledLabel: 'مُفعّل',
+            enabledOn: 'تشغيل',
+            enabledOff: 'إيقاف',
+            maxItemsLabel: 'الحد الأقصى للعناصر لكل نوع (1–10)',
+            autoplayLabel: 'التشغيل التلقائي',
+            autoplayMuted: 'بدون صوت (Muted)',
+            autoplaySound: 'مع الصوت',
+            preferRemoteLabel: 'تفضيل Trailers عن بُعد',
+            enabledYes: 'مُفعّل',
+            enabledNo: 'غير مُفعّل',
+            yes: 'نعم',
+            no: 'لا',
+            ytSection: 'YouTube (إصلاح الخطأ 153)',
+            ytDirectLabel: 'استخدام yt-dlp لاستخراج رابط مباشر (موصى به)',
+            ytDirectDesc: 'عند تفعيل هذا الخيار يتم تجاوز iframe الخاص بـ YouTube (الذي قد يظهر “مشاهدة الفيديو على YouTube” / الخطأ 153).',
+            ytPathLabel: 'المسار المطلق لملف yt-dlp',
+            ytPreferMp4Label: 'تفضيل MP4 Progressive',
+            ytPreferMp4No: 'لا (HLS/DASH إذا لزم)',
+            ytForce18Label: 'إجبار صيغة YouTube 18 (MP4 360p)',
+            ytForce18Yes: 'نعم (أعلى توافق)',
+            injectSection: 'الحقن في واجهة Jellyfin',
+            indexPathLabel: 'المسار الكامل لملف <code>index.html</code>',
+            btnProbe: 'فحص الحالة',
+            btnInject: 'حقن الآن',
+            btnRemove: 'إزالة الوسم',
+            btnInfo: 'تحديث معلومات المسار',
+            statusLabel: 'الحالة',
+            infoLabel: 'معلومات',
+            infoIndex: 'Index.html',
+            save: 'حفظ الإعدادات',
+            existsYes: '✓ موجود',
+            existsNo: '✗ غير موجود',
+            probing: 'جاري الفحص...',
+            injecting: 'جاري الحقن...',
+            removing: 'جاري الإزالة...',
+            injectedYes: '✅ الوسم محقون',
+            injectedNo: '⚠️ الوسم غير موجود',
+            injectOk: 'تم الحقن ✅',
+            removeOk: 'تمت الإزالة ✅',
+            saved: 'تم الحفظ.'
+          },
+          en: {
+            title: 'Video Autoplay – Settings',
+            langLabel: 'Language',
+            enabledLabel: 'Enabled',
+            enabledOn: 'On',
+            enabledOff: 'Off',
+            maxItemsLabel: 'Max items per type (1–10)',
+            autoplayLabel: 'Autoplay',
+            autoplayMuted: 'Muted (no audio)',
+            autoplaySound: 'With audio',
+            preferRemoteLabel: 'Prefer remote trailers',
+            enabledYes: 'Enabled',
+            enabledNo: 'Disabled',
+            yes: 'Yes',
+            no: 'No',
+            ytSection: 'YouTube (Fix error 153)',
+            ytDirectLabel: 'Use yt-dlp to extract a direct URL (recommended)',
+            ytDirectDesc: 'When enabled, this bypasses the YouTube iframe (which may show “Watch on YouTube” / error 153).',
+            ytPathLabel: 'Absolute yt-dlp executable path',
+            ytPreferMp4Label: 'Prefer progressive MP4',
+            ytPreferMp4No: 'No (HLS/DASH if needed)',
+            ytForce18Label: 'Force YouTube format 18 (MP4 360p)',
+            ytForce18Yes: 'Yes (highest compatibility)',
+            injectSection: 'Jellyfin Web injection',
+            indexPathLabel: 'Full path to <code>index.html</code>',
+            btnProbe: 'Probe status',
+            btnInject: 'Inject now',
+            btnRemove: 'Remove tag',
+            btnInfo: 'Refresh path info',
+            statusLabel: 'Status',
+            infoLabel: 'Info',
+            infoIndex: 'Index.html',
+            save: 'Save settings',
+            existsYes: '✓ exists',
+            existsNo: '✗ missing',
+            probing: 'Probing...',
+            injecting: 'Injecting...',
+            removing: 'Removing...',
+            injectedYes: '✅ Tag is injected',
+            injectedNo: '⚠️ Tag not found',
+            injectOk: 'Injected ✅',
+            removeOk: 'Removed ✅',
+            saved: 'Saved.'
+          }
+        };
+
+        function getLang(){
+          var el = document.getElementById('uiLanguage');
+          var v = (el && el.value) ? String(el.value) : 'ar';
+          return (v === 'en') ? 'en' : 'ar';
+        }
+
+        function t(key){
+          var lang = getLang();
+          var dict = I18N[lang] || I18N.ar;
+          return dict[key] || (I18N.ar[key] || key);
+        }
+
+        function applyLang(){
+          var lang = getLang();
+          var page = document.querySelector(pageSel);
+          if (page) page.setAttribute('data-lang', lang);
+
+          var titleEl = document.getElementById('t_title');
+          if (titleEl) titleEl.textContent = t('title');
+
+          var setTxt = function(id, txt){ var e = document.getElementById(id); if (e) e.textContent = txt; };
+          setTxt('t_langLabel', t('langLabel'));
+          setTxt('t_enabledLabel', t('enabledLabel'));
+          setTxt('t_enabledOn', t('enabledOn'));
+          setTxt('t_enabledOff', t('enabledOff'));
+          setTxt('t_maxItemsLabel', t('maxItemsLabel'));
+          setTxt('t_autoplayLabel', t('autoplayLabel'));
+          setTxt('t_autoplayMuted', t('autoplayMuted'));
+          setTxt('t_autoplaySound', t('autoplaySound'));
+          setTxt('t_preferRemoteLabel', t('preferRemoteLabel'));
+          setTxt('t_yes', t('enabledYes'));
+          setTxt('t_no', t('enabledNo'));
+          setTxt('t_yes2', t('enabledYes'));
+          setTxt('t_no2', t('enabledNo'));
+          setTxt('t_yes3', t('yes'));
+          setTxt('t_no3', t('no'));
+          setTxt('t_ytSection', t('ytSection'));
+          setTxt('t_ytDirectLabel', t('ytDirectLabel'));
+          setTxt('t_ytPathLabel', t('ytPathLabel'));
+          setTxt('t_ytPreferMp4Label', t('ytPreferMp4Label'));
+          setTxt('t_ytPreferMp4No', t('ytPreferMp4No'));
+          setTxt('t_ytForce18Label', t('ytForce18Label'));
+          setTxt('t_ytForce18Yes', t('ytForce18Yes'));
+          setTxt('t_injectSection', t('injectSection'));
+          setTxt('t_btnProbe', t('btnProbe'));
+          setTxt('t_btnInject', t('btnInject'));
+          setTxt('t_btnRemove', t('btnRemove'));
+          setTxt('t_btnInfo', t('btnInfo'));
+          setTxt('t_statusLabel', t('statusLabel'));
+          setTxt('t_infoLabel', t('infoLabel'));
+          setTxt('t_infoIndex', t('infoIndex'));
+          setTxt('t_save', t('save'));
+
+          var idxLabel = document.getElementById('t_indexPathLabel');
+          if (idxLabel) idxLabel.innerHTML = t('indexPathLabel');
+          var ytDesc = document.getElementById('t_ytDirectDesc');
+          if (ytDesc) ytDesc.textContent = t('ytDirectDesc');
+
+          var ex = document.getElementById('infoExists');
+          if (ex && ex.textContent && (ex.textContent.indexOf('✓') === 0 || ex.textContent.indexOf('✗') === 0)) {
+            var ok = ex.textContent.indexOf('✓') === 0;
+            ex.textContent = ok ? t('existsYes') : t('existsNo');
+          }
+        }
+
+        function setStatus(text, isErr) {
+          statusEl = statusEl || document.getElementById('vaStatus');
+          statusEl.textContent = text || '';
+          statusEl.style.color = isErr ? '#ff6b6b' : '#7CFC00';
+        }
+        function apiUrl(path){ return ApiClient.getUrl('VideoAutoplay/' + path); }
+        function getJSON(path){ return ApiClient.getJSON(apiUrl(path)); }
+        function post(path, body){
+          return ApiClient.ajax({
+            type: 'POST',
+            url: apiUrl(path),
+            contentType: body ? 'application/json; charset=UTF-8' : undefined,
+            data: body ? JSON.stringify(body) : undefined
+          });
+        }
+
+        function fillInfoView(info){
+          document.getElementById('infoBasePath').textContent    = info.basePath || '';
+          document.getElementById('infoResolvedWeb').textContent = info.resolvedWebPath || '';
+          document.getElementById('infoIndex').textContent       = info.indexHtml || info.configuredIndexHtmlPath || '';
+          var ex = document.getElementById('infoExists');
+          if (typeof info.exists !== 'undefined') {
+            ex.textContent = info.exists ? t('existsYes') : t('existsNo');
+            ex.style.color = info.exists ? '#7CFC00' : '#ff6b6b';
+          } else { ex.textContent=''; }
+
+          try {
+            var y = new Date().getFullYear();
+            var dev = (info && info.developer) ? info.developer : 'General-c4';
+            var ver = (info && info.version) ? String(info.version) : '0.0.0';
+            var footer = document.getElementById('vaFooter');
+            if (footer) footer.textContent = '© ' + y + ' - Developed by ' + dev + ' | Version ' + ver;
+          } catch(_){ }
+        }
+        function refreshInfo(){
+          return getJSON('info').then(function(info){
+            fillInfoView(info);
+            var box = document.getElementById('indexHtmlPath');
+            if (!box.value && (info.indexHtml || info.configuredIndexHtmlPath)) {
+              box.value = info.indexHtml || info.configuredIndexHtmlPath || '';
+            }
+          });
+        }
+        function probe(){
+          setStatus(t('probing'));
+          return getJSON('probe')
+            .then(function(res){ setStatus(res.injected ? t('injectedYes') : t('injectedNo')); })
+            .catch(function(e){ setStatus('فشل الفحص: ' + (e && (e.statusText || e.message || e)), true); });
+        }
+        function injectNow(){
+          setStatus(t('injecting'));
+          return post('inject-now')
+            .then(function(){ setStatus(t('injectOk')); return probe(); })
+            .catch(function(e){ setStatus('فشل الحقن: ' + (e && (e.statusText || e.message || e)), true); });
+        }
+        function removeNow(){
+          setStatus(t('removing'));
+          return post('remove-now')
+            .then(function(){ setStatus(t('removeOk')); return probe(); })
+            .catch(function(e){ setStatus('فشلت الإزالة: ' + (e && (e.statusText || e.message || e)), true); });
+        }
+
+        // تحميل/حفظ الإعدادات — أولاً عبر ApiClient، ولو فشل نستخدم /VideoAutoplay/conf
+        function loadCfg_viaApiClient(){
+          return ApiClient.getPluginConfiguration(pluginId).then(function(cfg){
+            document.getElementById('uiLanguage').value   = (cfg.UiLanguage || 'ar');
+            applyLang();
+            document.getElementById('enabled').value       = String(!!cfg.Enabled);
+            document.getElementById('maxItems').value      = cfg.MaxItemsPerType || 5;
+            document.getElementById('autoplayMuted').value = String(!!cfg.AutoplayMuted);
+            document.getElementById('preferRemoteTrailers').value = String(!!cfg.PreferRemoteTrailers);
+            document.getElementById('indexHtmlPath').value = (cfg.IndexHtmlPath || '');
+
+            document.getElementById('enableYtDirect').value = String(!!cfg.EnableYtDirect);
+            document.getElementById('ytDlpPath').value      = cfg.YtDlpPath || '';
+            document.getElementById('ytPreferMp4').value    = String(!!cfg.YtPreferMp4);
+            document.getElementById('ytForceFormat18').value = String(!!cfg.YtForceFormat18);
+          });
+        }
+        function loadCfg_viaController(){
+          return getJSON('conf').then(function(cfg){
+            document.getElementById('uiLanguage').value   = (cfg.uiLanguage || cfg.UiLanguage || 'ar');
+            applyLang();
+            document.getElementById('enabled').value       = String(!!cfg.enabled || !!cfg.Enabled);
+            document.getElementById('maxItems').value      = cfg.maxItemsPerType || cfg.MaxItemsPerType || 5;
+            document.getElementById('autoplayMuted').value = String(!!(cfg.autoplayMuted ?? cfg.AutoplayMuted));
+            document.getElementById('preferRemoteTrailers').value = String(!!(cfg.preferRemoteTrailers ?? cfg.PreferRemoteTrailers));
+            document.getElementById('indexHtmlPath').value = cfg.indexHtmlPath || cfg.IndexHtmlPath || '';
+
+            document.getElementById('enableYtDirect').value = String(!!(cfg.enableYtDirect ?? cfg.EnableYtDirect));
+            document.getElementById('ytDlpPath').value      = (cfg.ytDlpPath || cfg.YtDlpPath || '');
+            document.getElementById('ytPreferMp4').value    = String(!!(cfg.ytPreferMp4 ?? cfg.YtPreferMp4));
+            document.getElementById('ytForceFormat18').value = String(!!(cfg.ytForceFormat18 ?? cfg.YtForceFormat18));
+          });
+        }
+        function saveCfg_viaApiClient(){
+          return ApiClient.getPluginConfiguration(pluginId).then(function(cfg){
+            cfg.UiLanguage           = document.getElementById('uiLanguage').value || 'ar';
+            cfg.Enabled              = document.getElementById('enabled').value === 'true';
+            cfg.MaxItemsPerType      = Math.max(1, Math.min(10, parseInt(document.getElementById('maxItems').value,10) || 5));
+            cfg.AutoplayMuted        = document.getElementById('autoplayMuted').value === 'true';
+            cfg.PreferRemoteTrailers = document.getElementById('preferRemoteTrailers').value === 'true';
+            cfg.IndexHtmlPath        = (document.getElementById('indexHtmlPath').value || '').trim();
+
+            cfg.EnableYtDirect        = document.getElementById('enableYtDirect').value === 'true';
+            cfg.YtDlpPath             = (document.getElementById('ytDlpPath').value || '').trim();
+            cfg.YtPreferMp4           = document.getElementById('ytPreferMp4').value === 'true';
+            cfg.YtForceFormat18       = document.getElementById('ytForceFormat18').value === 'true';
+            return ApiClient.updatePluginConfiguration(pluginId, cfg);
+          }).then(function(result){
+            Dashboard.processPluginConfigurationUpdateResult(result);
+          });
+        }
+        function saveCfg_viaController(){
+          var body = {
+            UiLanguage: document.getElementById('uiLanguage').value || 'ar',
+            Enabled: document.getElementById('enabled').value === 'true',
+            MaxItemsPerType: Math.max(1, Math.min(10, parseInt(document.getElementById('maxItems').value,10) || 5)),
+            AutoplayMuted: document.getElementById('autoplayMuted').value === 'true',
+            PreferRemoteTrailers: document.getElementById('preferRemoteTrailers').value === 'true',
+            IndexHtmlPath: (document.getElementById('indexHtmlPath').value || '').trim(),
+
+            EnableYtDirect: document.getElementById('enableYtDirect').value === 'true',
+            YtDlpPath: (document.getElementById('ytDlpPath').value || '').trim(),
+            YtPreferMp4: document.getElementById('ytPreferMp4').value === 'true',
+            YtForceFormat18: document.getElementById('ytForceFormat18').value === 'true'
+          };
+          return post('conf', body);
+        }
+
+        function load(){
+          Dashboard.showLoadingMsg();
+          loadCfg_viaApiClient()
+            .catch(function(){ return loadCfg_viaController(); })
+            .then(function(){ return refreshInfo(); })
+            .then(function(){ Dashboard.hideLoadingMsg(); })
+            .catch(function(e){ Dashboard.hideLoadingMsg(); setStatus('Load failed: ' + (e && (e.statusText || e.message || e)), true); });
+        }
+
+        function save(e){
+          e.preventDefault();
+          Dashboard.showLoadingMsg();
+          saveCfg_viaApiClient()
+            .catch(function(){ return saveCfg_viaController(); })
+            .then(function(){ setStatus(t('saved')); return refreshInfo(); })
+            .catch(function(e){ setStatus('Save failed: ' + (e && (e.statusText || e.message || e)), true); })
+            .finally(function(){ Dashboard.hideLoadingMsg(); });
+          return false;
+        }
+
+        document.addEventListener('pageshow', function (e) {
+          if (e.target && e.target.matches && e.target.matches(pageSel)) {
+            if (e.target.getAttribute('data-va-bound') === '1') { load(); return; }
+            e.target.setAttribute('data-va-bound', '1');
+            load();
+            document.querySelector(formSel).addEventListener('submit', save);
+            document.getElementById('uiLanguage').addEventListener('change', function(){ applyLang(); }, false);
+            document.getElementById('btnProbe').addEventListener('click', probe);
+            document.getElementById('btnInject').addEventListener('click', injectNow);
+            document.getElementById('btnRemove').addEventListener('click', removeNow);
+            document.getElementById('btnInfo').addEventListener('click', refreshInfo);
+          }
+        });
+      })();
+    </script>
+  </div>
+</body>
+</html>

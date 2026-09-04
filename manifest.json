@@ -1,0 +1,21 @@
+[
+  {
+    "guid": "f8aab2db-7f0a-4c43-8b6c-9c9a1a3d9e01",
+    "name": "JF Video Autoplay",
+    "overview": "Home hero with auto-playing trailers (Movie/Series).",
+    "description": "Displays a hero banner on the home page with auto-playing trailers, logos, and quick details.",
+    "owner": "General-c4",
+    "category": "General",
+    "imageUrl": "https://raw.githubusercontent.com/General-c4/JF-Video-Autoplay-Releases/main/Image/thumb-JF.png",
+    "versions": [
+      {
+        "version": "1.1.1",
+        "changelog": "- RC2 loader cache and dependency-order regression fix\n- Revision-aware media cache refresh\n- Controlled automatic and manual refresh\n- Trailer cache invalidation and lifecycle cleanup",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/General-c4/JF-Video-Autoplay-Releases/releases/download/v1.1.1/Jellyfin.Plugin.VideoAutoplay-1.1.1.zip",
+        "checksum": "",
+        "timestamp": "2026-09-04T00:00:00Z"
+      }
+    ]
+  }
+]

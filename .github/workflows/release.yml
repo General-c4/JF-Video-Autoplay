@@ -1,0 +1,159 @@
+name: Publish approved release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Semantic version, for example 1.1.1 or 1.1.1-rc2'
+        required: true
+        type: string
+      stable_confirmation:
+        description: 'Type APPROVE-STABLE for a stable production release'
+        required: false
+        type: string
+      update_distribution_manifest:
+        description: 'Add this version to the Jellyfin distribution manifest'
+        required: true
+        default: false
+        type: boolean
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.ref }}-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: ${{ contains(inputs.version || github.ref_name, '-') && 'rc-release' || 'production-release' }}
+    env:
+      DIST_REPO: General-c4/JF-Video-Autoplay-Releases
+      GH_TOKEN: ${{ secrets.DISTRIBUTION_REPO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.317
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Resolve and validate requested version
+        id: version
+        shell: pwsh
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          STABLE_CONFIRMATION: ${{ inputs.stable_confirmation }}
+          APPROVED_STABLE_VERSION: ${{ vars.STABLE_RELEASE_APPROVED_VERSION }}
+        run: |
+          $version = if ('${{ github.ref_type }}' -eq 'tag') { '${{ github.ref_name }}'.TrimStart('v') } else { $env:INPUT_VERSION.TrimStart('v') }
+          if ($version -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$') { throw "Invalid semantic version." }
+          $tag = "v$version"
+          if ('${{ github.ref_type }}' -eq 'tag' -and '${{ github.ref_name }}' -cne $tag) { throw "Tag/version mismatch." }
+          [xml]$props = Get-Content -Raw Directory.Build.props
+          $pluginVersion = [string]$props.Project.PropertyGroup.PluginVersion
+          $baseVersion = $version.Split('-')[0]
+          if ($pluginVersion -cne $baseVersion) { throw "Requested version does not match PluginVersion." }
+          $isPrerelease = $version.Contains('-')
+          if (-not $isPrerelease) {
+            $approved = ($env:STABLE_CONFIRMATION -ceq 'APPROVE-STABLE') -or ($env:APPROVED_STABLE_VERSION -ceq $version)
+            if (-not $approved) { throw "Stable publication requires explicit approval." }
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "prerelease=$($isPrerelease.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+      - name: Reject existing release or tag
+        shell: bash
+        run: |
+          if gh release view '${{ steps.version.outputs.tag }}' --repo "$DIST_REPO" >/dev/null 2>&1; then
+            echo "Release already exists; refusing to overwrite it."
+            exit 1
+          fi
+          if gh api "repos/$DIST_REPO/git/ref/tags/${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
+            echo "Tag already exists; refusing to overwrite it."
+            exit 1
+          fi
+      - name: Clean, restore, build, and test
+        run: |
+          dotnet clean Jellyfin.Plugin.VideoAutoplay.sln -c Release --verbosity minimal
+          dotnet restore Jellyfin.Plugin.VideoAutoplay.sln --force --no-cache --verbosity minimal
+          dotnet build Jellyfin.Plugin.VideoAutoplay.sln -c Release --no-restore --verbosity minimal
+          dotnet test Jellyfin.Plugin.VideoAutoplay.sln -c Release --no-build --no-restore --verbosity minimal
+          node --check src/Web/loader.js
+          node --check src/Web/media-cache.js
+          node --check src/Web/video-autoplay.js
+          node tests/media-cache.test.js
+          dotnet list Jellyfin.Plugin.VideoAutoplay.sln package --vulnerable --include-transitive
+      - name: Build and validate canonical ZIP
+        id: package
+        shell: pwsh
+        run: |
+          $version = '${{ steps.version.outputs.version }}'
+          $dll = 'src/bin/Release/net9.0/Jellyfin.Plugin.VideoAutoplay.dll'
+          $zipPath = "artifacts/Jellyfin.Plugin.VideoAutoplay-$version.zip"
+          New-Item -ItemType Directory artifacts | Out-Null
+          Compress-Archive -LiteralPath $dll -DestinationPath $zipPath -CompressionLevel Optimal
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip = [IO.Compression.ZipFile]::OpenRead($zipPath)
+          try {
+            if ($zip.Entries.Count -ne 1 -or $zip.Entries[0].FullName -cne 'Jellyfin.Plugin.VideoAutoplay.dll') { throw 'Invalid ZIP layout.' }
+          } finally { $zip.Dispose() }
+          $assembly = [Reflection.AssemblyName]::GetAssemblyName((Resolve-Path $dll))
+          if ($assembly.Version.ToString() -cne "$($version.Split('-')[0]).0") { throw 'DLL version mismatch.' }
+          $manifest = Get-Content manifest.json -Raw | ConvertFrom-Json
+          if ($manifest[0].versions[0].targetAbi -cne '10.11.0.0') { throw 'ABI mismatch.' }
+          $sha = (Get-FileHash $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          $md5 = (Get-FileHash $zipPath -Algorithm MD5).Hash.ToLowerInvariant()
+          "zip=$zipPath" >> $env:GITHUB_OUTPUT
+          "name=$([IO.Path]::GetFileName($zipPath))" >> $env:GITHUB_OUTPUT
+          "sha256=$sha" >> $env:GITHUB_OUTPUT
+          "md5=$md5" >> $env:GITHUB_OUTPUT
+      - name: Create distribution pre-release or release
+        shell: bash
+        run: |
+          flags=()
+          if [ '${{ steps.version.outputs.prerelease }}' = 'true' ]; then flags+=(--prerelease --latest=false); fi
+          gh release create '${{ steps.version.outputs.tag }}' '${{ steps.package.outputs.zip }}' --repo "$DIST_REPO" --title "VideoAutoplay ${{ steps.version.outputs.tag }}" --notes "Verified VideoAutoplay ${{ steps.version.outputs.version }} release." "${flags[@]}"
+      - name: Download and verify public asset
+        shell: pwsh
+        run: |
+          $url = "https://github.com/$env:DIST_REPO/releases/download/${{ steps.version.outputs.tag }}/${{ steps.package.outputs.name }}"
+          Invoke-WebRequest -Uri $url -OutFile public.zip
+          if ((Get-FileHash public.zip -Algorithm SHA256).Hash.ToLowerInvariant() -cne '${{ steps.package.outputs.sha256 }}') { throw 'Public SHA-256 mismatch.' }
+          if ((Get-FileHash public.zip -Algorithm MD5).Hash.ToLowerInvariant() -cne '${{ steps.package.outputs.md5 }}') { throw 'Public MD5 mismatch.' }
+      - name: Update distribution manifest when explicitly selected
+        if: ${{ inputs.update_distribution_manifest == true || (github.ref_type == 'tag' && steps.version.outputs.prerelease == 'false') }}
+        shell: pwsh
+        run: |
+          gh auth setup-git
+          git clone "https://github.com/$env:DIST_REPO.git" distribution
+          Set-Location distribution
+          $manifest = Get-Content manifest.json -Raw | ConvertFrom-Json
+          if ($manifest[0].versions.version -contains '${{ steps.version.outputs.version }}') { throw 'Manifest version already exists.' }
+          $entry = [ordered]@{
+            version = '${{ steps.version.outputs.version }}'
+            changelog = "Verified VideoAutoplay ${{ steps.version.outputs.version }} release."
+            targetAbi = '10.11.0.0'
+            sourceUrl = "https://github.com/$env:DIST_REPO/releases/download/${{ steps.version.outputs.tag }}/${{ steps.package.outputs.name }}"
+            checksum = '${{ steps.package.outputs.md5 }}'
+            timestamp = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ',[Globalization.CultureInfo]::InvariantCulture)
+          }
+          $manifest[0].versions = @([pscustomobject]$entry) + @($manifest[0].versions)
+          $manifest | ConvertTo-Json -Depth 10 | Set-Content manifest.json -Encoding utf8
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add manifest.json
+          git commit -m "release: add VideoAutoplay ${{ steps.version.outputs.version }}"
+          git pull --rebase origin main
+          git push origin main
+
+# Required setup: create a fine-grained DISTRIBUTION_REPO_TOKEN secret with
+# Contents read/write access only to General-c4/JF-Video-Autoplay-Releases.
+# Protect the production-release environment with required reviewers. Stable tag
+# runs also require STABLE_RELEASE_APPROVED_VERSION to match the requested version.

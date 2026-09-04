@@ -1,0 +1,46 @@
+# Build and package output
+**/bin/
+**/obj/
+**/dist/
+build/dist/
+*.dll
+*.pdb
+*.zip
+*.sha256
+*.checksums.txt
+
+# Jellyfin/local runtime data
+index.html
+*.bak
+logs/
+log/
+backup*/
+*backup*
+data/
+cache/
+config/
+configuration/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.local
+*.local.*
+secrets.json
+appsettings.Development.json
+appsettings.Local.json
+
+# IDE and operating-system files
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.DS_Store
+Thumbs.db
+Desktop.ini
+TestResults/
+coverage/

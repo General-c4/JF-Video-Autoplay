@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Version>$(PluginVersion)</Version>
+    <AssemblyVersion>$(PluginVersion).0</AssemblyVersion>
+    <FileVersion>$(PluginVersion).0</FileVersion>
+    <InformationalVersion>$(PluginVersion)</InformationalVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <LangVersion>13.0</LangVersion>
+    <AssemblyName>Jellyfin.Plugin.VideoAutoplay</AssemblyName>
+    <RootNamespace>Jellyfin.Plugin.VideoAutoplay</RootNamespace>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+
+  <!-- مهم: هذي الحزم تعرّف BasePlugin وواجهات MediaBrowser.* -->
+  <ItemGroup>
+    <PackageReference Include="Jellyfin.Model" Version="10.11.11">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="Jellyfin.Controller" Version="10.11.11">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <!-- الموارد المضمّنة اللي نسترجعها من الكنترولر -->
+  <ItemGroup>
+    <EmbeddedResource Include="Controllers\configPage.html" />
+    <EmbeddedResource Include="Web\loader.js" />
+    <EmbeddedResource Include="Web\media-cache.js" />
+    <EmbeddedResource Include="Web\video-autoplay.js" />
+    <EmbeddedResource Include="Web\vendor\hls.min.js" />
+    <EmbeddedResource Include="Web\vendor\hls.LICENSE.txt" />
+  </ItemGroup>
+</Project>

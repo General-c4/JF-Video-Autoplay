@@ -1,0 +1,53 @@
+name: Validate source
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.317
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Reject tracked generated or sensitive file types
+        shell: bash
+        run: |
+          forbidden="$(git ls-files | grep -Ei '(^|/)(bin|obj|dist|logs?|backup[^/]*)/|\.(dll|pdb|zip|bak|sha256|checksums\.txt)$|(^|/)index\.html$' || true)"
+          if [ -n "$forbidden" ]; then
+            echo "Forbidden tracked paths detected:"
+            echo "$forbidden"
+            exit 1
+          fi
+      - name: Clean
+        run: dotnet clean Jellyfin.Plugin.VideoAutoplay.sln -c Release --verbosity minimal
+      - name: Restore
+        run: dotnet restore Jellyfin.Plugin.VideoAutoplay.sln --force --no-cache --verbosity minimal
+      - name: Build Release
+        run: dotnet build Jellyfin.Plugin.VideoAutoplay.sln -c Release --no-restore --verbosity minimal
+      - name: Run .NET tests
+        run: dotnet test Jellyfin.Plugin.VideoAutoplay.sln -c Release --no-build --no-restore --logger "trx;LogFileName=tests.trx" --results-directory TestResults
+      - name: Check JavaScript and cache behavior
+        run: |
+          node --check src/Web/loader.js
+          node --check src/Web/media-cache.js
+          node --check src/Web/video-autoplay.js
+          node tests/media-cache.test.js
+      - name: Scan NuGet dependencies
+        run: dotnet list Jellyfin.Plugin.VideoAutoplay.sln package --vulnerable --include-transitive
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults/
+          if-no-files-found: warn
+          retention-days: 14
