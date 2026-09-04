@@ -16,10 +16,6 @@ on:
         required: true
         default: false
         type: boolean
-  push:
-    tags:
-      - 'v*.*.*'
-
 permissions:
   contents: read
 
