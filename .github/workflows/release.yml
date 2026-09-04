@@ -35,13 +35,13 @@ jobs:
       DIST_REPO: General-c4/JF-Video-Autoplay-Releases
       GH_TOKEN: ${{ secrets.DISTRIBUTION_REPO_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 9.0.317
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
       - name: Resolve and validate requested version
