@@ -12,7 +12,7 @@ namespace Jellyfin.Plugin.VideoAutoplay
 {
     public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     {
-        public static string ToolVersion => typeof(Plugin).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
+        public static string ToolVersion => System.Reflection.CustomAttributeExtensions.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>(typeof(Plugin).Assembly)?.InformationalVersion ?? "0.0.0";
 
         public static Plugin Instance { get; private set; } = null!;
         internal static string BasePath { get; private set; } = string.Empty;

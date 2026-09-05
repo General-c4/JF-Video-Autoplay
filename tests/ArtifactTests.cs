@@ -17,10 +17,10 @@ public sealed class ArtifactTests
     public void AssemblyAndManifestVersionsAreConsistent()
     {
         var assemblyVersion = typeof(Plugin).Assembly.GetName().Version;
-        Assert.Equal(new Version(1, 1, 1, 0), assemblyVersion);
+        Assert.Equal(new Version(1, 1, 2, 1), assemblyVersion);
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(ProjectRoot, "manifest.json")));
         var version = manifest.RootElement[0].GetProperty("versions")[0];
-        Assert.Equal("1.1.1", version.GetProperty("version").GetString());
+        Assert.Equal("1.1.2.1", version.GetProperty("version").GetString());
         Assert.Equal("10.11.0.0", version.GetProperty("targetAbi").GetString());
     }
 
@@ -47,12 +47,23 @@ public sealed class ArtifactTests
     }
 
     [Fact]
+    public void JellyfinParsesRcNumericVersionAsAnUpdate()
+    {
+        var rc = new MediaBrowser.Model.Updates.VersionInfo { Version = "1.1.2.1" };
+        Assert.True(rc.VersionNumber > new Version(1, 1, 1, 0));
+        Assert.True(new Version("1.1.2.2") > rc.VersionNumber);
+        Assert.Equal(rc.VersionNumber, typeof(Plugin).Assembly.GetName().Version);
+        Assert.Equal("1.1.2-rc1", Plugin.ToolVersion);
+    }
+
+    [Fact]
     public void RequiredResourcesAreEmbedded()
     {
         var resources = typeof(Plugin).Assembly.GetManifestResourceNames();
         Assert.Contains("Jellyfin.Plugin.VideoAutoplay.Controllers.configPage.html", resources);
         Assert.Contains("Jellyfin.Plugin.VideoAutoplay.Web.loader.js", resources);
         Assert.Contains("Jellyfin.Plugin.VideoAutoplay.Web.media-cache.js", resources);
+        Assert.Contains("Jellyfin.Plugin.VideoAutoplay.Web.runtime.js", resources);
         Assert.Contains("Jellyfin.Plugin.VideoAutoplay.Web.video-autoplay.js", resources);
         Assert.Contains("Jellyfin.Plugin.VideoAutoplay.Web.vendor.hls.min.js", resources);
         Assert.Contains("Jellyfin.Plugin.VideoAutoplay.Web.vendor.hls.LICENSE.txt", resources);
@@ -63,7 +74,7 @@ public sealed class ArtifactTests
     {
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(ProjectRoot, "manifest.json")));
         var version = manifest.RootElement[0].GetProperty("versions")[0];
-        Assert.Equal("1.1.1", version.GetProperty("version").GetString());
+        Assert.Equal("1.1.2.1", version.GetProperty("version").GetString());
         Assert.Equal(string.Empty, version.GetProperty("checksum").GetString());
     }
 
@@ -71,6 +82,8 @@ public sealed class ArtifactTests
     public void MediaCacheBehaviorTestsPass()
     {
         RunNode(Path.Combine(ProjectRoot, "tests", "media-cache.test.js"));
+        RunNode(Path.Combine(ProjectRoot, "tests", "runtime.test.js"));
+        RunNode(Path.Combine(ProjectRoot, "tests", "loader.test.js"));
     }
 
     [Fact]
@@ -105,7 +118,7 @@ public sealed class ArtifactTests
         var cache = content.IndexOf("loadScript('/VideoAutoplay/media-cache.js')", StringComparison.Ordinal);
         var main = content.IndexOf("loadScript('/VideoAutoplay/video-autoplay.js')", StringComparison.Ordinal);
         Assert.True(config >= 0 && cache > config && main > cache);
-        Assert.Contains("searchParams.get('v')", content, StringComparison.Ordinal);
+        Assert.Contains("const version = '1.1.2-rc1'", content, StringComparison.Ordinal);
         Assert.Contains("Failed to load dependency", content, StringComparison.Ordinal);
         Assert.Contains("Loader stopped", content, StringComparison.Ordinal);
         Assert.DoesNotContain("Date.now()", content, StringComparison.Ordinal);
@@ -114,6 +127,7 @@ public sealed class ArtifactTests
     [Theory]
     [InlineData(nameof(VaController.Loader))]
     [InlineData(nameof(VaController.MediaCacheJs))]
+    [InlineData(nameof(VaController.RuntimeJs))]
     [InlineData(nameof(VaController.MainJs))]
     [InlineData(nameof(VaController.HlsJs))]
     public void PublicScriptEndpointsReturnJavascript(string methodName)

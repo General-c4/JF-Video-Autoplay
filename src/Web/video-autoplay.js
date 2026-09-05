@@ -6,7 +6,12 @@
  * - متصفحات لا تدعم MutationObserver: نستعمل setInterval لمحاولة التركيب.
  * - متصفحات لا تدعم تشغيل HLS (m3u8): نتراجع لصورة الخلفية/iframe إن وُجد.
  *****************************************/
+(function(){
+if (window.VideoAutoplayRuntime) { window.VideoAutoplayRuntime.retry(); return; }
+if (window.__VA_FRONTEND_PENDING__) return;
+window.__VA_FRONTEND_PENDING__ = true;
 var CFG = window.JF_VA_CONFIG || {};
+var ApiClient;
 var ALT_TITLES = (Array.isArray(CFG.altTitles) && CFG.altTitles.length
   ? CFG.altTitles
   : ["مكتبتي","My Library","المكتبة","Library","我的资料库","Моя библиотека"]);
@@ -71,44 +76,47 @@ function T(key){
 
 (function(){
   if (CFG.enabled === false) return;
-  if (!window.ApiClient || !MEDIA_CACHE) { try{ console.error('[VA] Authenticated ApiClient or media cache helpers are unavailable'); }catch(_){} return; }
+  if (!window.VideoAutoplayLifecycle) { console.error('[VA] Lifecycle helpers unavailable'); return; }
 
   // Polyfills
   if (!Array.prototype.find) Array.prototype.find = function(fn,thisArg){ for (var i=0;i<this.length;i++){ if(fn.call(thisArg,this[i],i,this)) return this[i]; } };
   if (!String.prototype.includes) String.prototype.includes = function(s,p){ return this.indexOf(s,p||0) !== -1; };
 
-  if (window.__JF_HERO && typeof window.__JF_HERO.dispose === 'function') { try{ window.__JF_HERO.dispose(); }catch(_){} }
-  var mo=null, poll=null, orientationTimer=null, mountedOnce=false, hero=null;
-  function onHash(){ if (tryMount()) { try{ hero.refresh('navigation'); }catch(_){} } }
-  function onResize(){ try{ hero.refreshSize(); }catch(_){} }
-  function onOrientation(){ if(orientationTimer) clearTimeout(orientationTimer); orientationTimer=setTimeout(function(){ orientationTimer=null; onResize(); },250); }
-  window.__JF_HERO = { dispose:function(){
-    try{ mo&&mo.disconnect&&mo.disconnect(); }catch(_){}
-    try{ if(poll) clearInterval(poll); }catch(_){}
-    try{ if(orientationTimer) clearTimeout(orientationTimer); }catch(_){}
-    try{ window.removeEventListener('hashchange', onHash, false); }catch(_){}
-    try{ window.removeEventListener('resize', onResize, false); }catch(_){}
-    try{ window.removeEventListener('orientationchange', onOrientation, false); }catch(_){}
-    try{ hero&&hero.destroy&&hero.destroy(); }catch(_){}
-    try{ delete window.__JF_HERO; }catch(_){}
-  } };
-
   function onReady(fn){ if (document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', fn, {once:true}); } else { fn(); } }
-  onReady(init);
-
-  function init(){
-    hero = buildHero();
-    tryMount();
-    if ('MutationObserver' in window){
-      mo = new MutationObserver(function(){ tryMount(); });
-      try { mo.observe(document.body,{childList:true,subtree:true}); } catch(_){ }
-    } else {
-      poll=setInterval(function(){ if (!document.body) return; if (tryMount()){ clearInterval(poll); poll=null;} },700);
-    }
-    window.addEventListener('hashchange', onHash, false);
-    window.addEventListener('resize', onResize, false);
-    try { window.addEventListener('orientationchange', onOrientation, false); } catch(_){ }
-  }
+  onReady(function(){
+    window.__VA_FRONTEND_PENDING__ = false;
+    window.VideoAutoplayRuntime = window.VideoAutoplayLifecycle.create({
+      now: Date.now, setTimeout: setTimeout, clearTimeout: clearTimeout,
+      configKey: JSON.stringify(CFG),
+      isHome: function(){ return /^#\/?home(?:[?\/]|$)/.test(location.hash); },
+      client: function(){
+        var client=window.ApiClient;
+        try { return client && typeof client.accessToken==='function' && client.accessToken() && typeof client.getCurrentUser==='function' ? client : null; } catch(_){ return null; }
+      },
+      cache: function(){ return window.VideoAutoplayCache; }, host: findLibrarySection,
+      configuration: function(){
+        var base=(location.pathname.split('/web/')[0]||'').replace(/\/+$/,'');
+        return fetch(base+'/VideoAutoplay/config.json',{cache:'no-store',signal:AbortSignal.timeout(10000)}).then(function(r){if(!r.ok)throw new Error('config_unavailable');return r.json();});
+      },
+      applyConfiguration: function(config){ window.JF_VA_CONFIG=config; CFG=config; },
+      mount: function(component,host){ if(component.root.parentElement!==host.parentElement || component.root.nextElementSibling!==host) host.parentElement.insertBefore(component.root,host); component.refreshSize(); },
+      on: function(name,fn){ (name==='viewshow'?document:window).addEventListener(name,fn); },
+      off: function(name,fn){ (name==='viewshow'?document:window).removeEventListener(name,fn); },
+      observe: function(fn){ var observer=new MutationObserver(fn); observer.observe(document.body,{childList:true,subtree:true}); return observer; },
+      log: function(message){
+        console.debug('[VA] '+message);
+        console.debug('[VA] readiness', {clientType:typeof window.ApiClient,cacheType:typeof window.VideoAutoplayCache,
+          generation:window.VideoAutoplayRuntime ? window.VideoAutoplayRuntime.generation : 0,
+          mounted:!!(window.VideoAutoplayRuntime && window.VideoAutoplayRuntime.mounted)});
+      }
+    }, function(client,cache){
+      ApiClient=client; MEDIA_CACHE=cache; CFG=window.JF_VA_CONFIG||CFG;
+      if(CFG.ytDlpAvailable===false && CFG.enableYtDirect) client.getCurrentUser().then(function(user){
+        if(user && user.Policy && user.Policy.IsAdministrator) console.warn('[VA] yt-dlp executable was not found or is not executable on the Jellyfin server.');
+      }).catch(function(){});
+      return buildHero();
+    });
+  });
 
   // === 1) ابحث عن قسم "مكتبتي" في أي صفحة، مش الهوم فقط ===
   function normalizeText(s){ return String(s||"").replace(/\s+/g," ").trim().toLowerCase(); }
@@ -121,27 +129,10 @@ function T(key){
       if (!h2) continue;
       var t = normalizeText(h2.textContent||'');
       for (var j=0;j<ALT_TITLES.length;j++){
-        if (t === normalizeText(ALT_TITLES[j])) return sec;
+        if (t === normalizeText(ALT_TITLES[j]) && sec.getClientRects().length) return sec;
       }
     }
     return null;
-  }
-
-  // === 2) حضّر الـHero واربطه فوق "مكتبتي" متى ما ظهرت ===
-  function tryMount() {
-    var host = findLibrarySection();
-    if (!host) return false;
-
-    // لا تكرر الإدراج
-    if (hero.root.parentElement === host.parentElement && hero.root.nextElementSibling === host) {
-      return true;
-    }
-
-    try { hero.root.remove(); } catch(_){}
-    try { host.parentElement.insertBefore(hero.root, host); } catch(_){ return false; }
-    if (!mountedOnce) { try { hero.attach(); mountedOnce = true; } catch(_){ } }
-    try { hero.refreshSize(); } catch(_){}
-    return true;
   }
 
   // ===========================
@@ -359,12 +350,25 @@ function T(key){
 
         function fetchYtDirect(mode){
           var ytApi = API_BASE + "/VideoAutoplay/yt-direct?mode="+mode+"&u="+encodeURIComponent(u);
-          return fetch(ytApi, { headers:authHeaders(), cache:'no-store' })
-            .then(function(r){ if(!r.ok) throw new Error("ytDirect status "+r.status); return r.json(); });
+          return window.VideoAutoplayLifecycle.direct({
+            runtime:window.VideoAutoplayRuntime,
+            configuration:JSON.stringify(window.JF_VA_CONFIG||{}),
+            available:CFG.ytDlpAvailable!==false,
+            now:Date.now,
+            user:function(){return ApiClient.getCurrentUser();},
+            fallback:function(){return {ok:false};},
+            warn:function(){console.warn('[VA] yt-dlp executable was not found or is not executable on the Jellyfin server.');},
+            request:function(){
+              var controller=new AbortController(), timeout=setTimeout(function(){controller.abort();},16000);
+              return fetch(ytApi,{headers:authHeaders(),cache:'no-store',signal:controller.signal})
+                .then(function(r){return r.json().then(function(j){if(!r.ok) j.ok=false;return j;});})
+                .finally(function(){clearTimeout(timeout);});
+            }
+          });
         }
 
         // داخل JMP: لا نسمح بالـ iframe؛ نحاول yt-direct حتى لو لم يُفعل الخيار صراحةً
-        var allowYtDirect = !!CFG.enableYtDirect || IS_JMP;
+        var allowYtDirect = !!CFG.enableYtDirect && CFG.ytDlpAvailable!==false;
         if (allowYtDirect){
           var primaryMode = YT_FORCE_18 ? "18" : (YT_PREFER_MP4?"mp4":"hls");
           if (IS_JMP) primaryMode = (YT_FORCE_18 ? "18" : "mp4");
@@ -1061,4 +1065,5 @@ function T(key){
     // واجهة عامة
     return { root:root, attach:attach, destroy:destroy, refreshSize:refreshSize, refresh:refresh };
   }
+})();
 })();

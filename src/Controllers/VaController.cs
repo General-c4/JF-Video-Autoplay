@@ -35,6 +35,7 @@ public sealed class VaController : ControllerBase
                 basePath = GetBasePath(),
                 altTitles = cfg.AltTitles ?? Array.Empty<string>(),
                 enableYtDirect = cfg.EnableYtDirect,
+                ytDlpAvailable = Path.IsPathFullyQualified(cfg.YtDlpPath ?? string.Empty) && System.IO.File.Exists(cfg.YtDlpPath),
                 ytPreferMp4 = cfg.YtPreferMp4,
                 ytForceFormat18 = cfg.YtForceFormat18,
                 version = Plugin.ToolVersion
@@ -56,8 +57,28 @@ public sealed class VaController : ControllerBase
     public IActionResult Loader() => EmbeddedFile("Jellyfin.Plugin.VideoAutoplay.Web.loader.js");
 
     [AllowAnonymous]
+    [HttpGet("config.json")]
+    public IActionResult ConfigJson()
+    {
+        var result = (ContentResult)ConfigJs();
+        var content = result.Content ?? string.Empty;
+        const string prefix = "window.JF_VA_CONFIG=";
+        if (!content.StartsWith(prefix, StringComparison.Ordinal)) return StatusCode(503);
+        try
+        {
+            using var json = JsonDocument.Parse(content[prefix.Length..].TrimEnd(';'));
+            return new JsonResult(json.RootElement.Clone());
+        }
+        catch (JsonException) { return StatusCode(503); }
+    }
+
+    [AllowAnonymous]
     [HttpGet("media-cache.js")]
     public IActionResult MediaCacheJs() => EmbeddedFile("Jellyfin.Plugin.VideoAutoplay.Web.media-cache.js");
+
+    [AllowAnonymous]
+    [HttpGet("runtime.js")]
+    public IActionResult RuntimeJs() => EmbeddedFile("Jellyfin.Plugin.VideoAutoplay.Web.runtime.js");
 
     [AllowAnonymous]
     [HttpGet("video-autoplay.js")]

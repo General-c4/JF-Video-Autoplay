@@ -36,8 +36,10 @@ public sealed class AuthorizationTests
 
     [Theory]
     [InlineData(nameof(VaController.ConfigJs))]
+    [InlineData(nameof(VaController.ConfigJson))]
     [InlineData(nameof(VaController.Loader))]
     [InlineData(nameof(VaController.MediaCacheJs))]
+    [InlineData(nameof(VaController.RuntimeJs))]
     [InlineData(nameof(VaController.MainJs))]
     [InlineData(nameof(VaController.HlsJs))]
     public void OnlyStaticClientAssetsAllowAnonymousAccess(string methodName)

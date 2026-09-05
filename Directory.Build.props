@@ -1,6 +1,8 @@
 <Project>
   <PropertyGroup>
-    <PluginVersion>1.1.1</PluginVersion>
-    <ReleaseCandidate>rc2</ReleaseCandidate>
+    <PluginVersion>1.1.2</PluginVersion>
+    <ReleaseCandidate>rc1</ReleaseCandidate>
+    <PluginReleaseVersion>1.1.2-rc1</PluginReleaseVersion>
+    <PluginAssemblyVersion>1.1.2.1</PluginAssemblyVersion>
   </PropertyGroup>
 </Project>

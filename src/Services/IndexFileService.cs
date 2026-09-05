@@ -15,7 +15,7 @@ public sealed class IndexFileService
     internal const string Marker = "plugin=\"VideoAutoplay\"";
     private static readonly SemaphoreSlim MutationLock = new(1, 1);
     private static readonly Regex TagRegex = new(
-        @"\s*<script\s+plugin=""VideoAutoplay""[^>]*>\s*</script>\s*",
+        @"\s*<script\b(?=[^>]*(?:\bplugin\s*=\s*['""]VideoAutoplay['""]|\bsrc\s*=\s*['""](?:[^'""?#]*/)?VideoAutoplay/loader\.js(?:[?#][^'""]*)?['""]))[^>]*>\s*</script>\s*",
         RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.CultureInvariant,
         TimeSpan.FromSeconds(1));
 

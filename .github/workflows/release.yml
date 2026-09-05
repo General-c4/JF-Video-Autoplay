@@ -57,6 +57,8 @@ jobs:
           $baseVersion = $version.Split('-')[0]
           if ($pluginVersion -cne $baseVersion) { throw "Requested version does not match PluginVersion." }
           $isPrerelease = $version.Contains('-')
+          if (-not $isPrerelease) { throw "Automatic releases must be RC pre-releases. Stable promotion requires a separate explicit user request." }
+          if ($version -cne [string]$props.Project.PropertyGroup.PluginReleaseVersion) { throw "RC metadata mismatch." }
           if (-not $isPrerelease) {
             $approved = ($env:STABLE_CONFIRMATION -ceq 'APPROVE-STABLE') -or ($env:APPROVED_STABLE_VERSION -ceq $version)
             if (-not $approved) { throw "Stable publication requires explicit approval." }
@@ -83,8 +85,11 @@ jobs:
           dotnet test Jellyfin.Plugin.VideoAutoplay.sln -c Release --no-build --no-restore --verbosity minimal
           node --check src/Web/loader.js
           node --check src/Web/media-cache.js
+          node --check src/Web/runtime.js
           node --check src/Web/video-autoplay.js
           node tests/media-cache.test.js
+          node tests/runtime.test.js
+          node tests/loader.test.js
           dotnet list Jellyfin.Plugin.VideoAutoplay.sln package --vulnerable --include-transitive
       - name: Build and validate canonical ZIP
         id: package
@@ -101,7 +106,8 @@ jobs:
             if ($zip.Entries.Count -ne 1 -or $zip.Entries[0].FullName -cne 'Jellyfin.Plugin.VideoAutoplay.dll') { throw 'Invalid ZIP layout.' }
           } finally { $zip.Dispose() }
           $assembly = [Reflection.AssemblyName]::GetAssemblyName((Resolve-Path $dll))
-          if ($assembly.Version.ToString() -cne "$($version.Split('-')[0]).0") { throw 'DLL version mismatch.' }
+          [xml]$props = Get-Content -Raw Directory.Build.props
+          if ($assembly.Version.ToString() -cne [string]$props.Project.PropertyGroup.PluginAssemblyVersion) { throw 'DLL version mismatch.' }
           $manifest = Get-Content manifest.json -Raw | ConvertFrom-Json
           if ($manifest[0].versions[0].targetAbi -cne '10.11.0.0') { throw 'ABI mismatch.' }
           $sha = (Get-FileHash $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -133,7 +139,7 @@ jobs:
           $manifest = Get-Content manifest.json -Raw | ConvertFrom-Json
           if ($manifest[0].versions.version -contains '${{ steps.version.outputs.version }}') { throw 'Manifest version already exists.' }
           $entry = [ordered]@{
-            version = '${{ steps.version.outputs.version }}'
+            version = ('${{ steps.version.outputs.version }}' -replace '-rc', '.')
             changelog = "Verified VideoAutoplay ${{ steps.version.outputs.version }} release."
             targetAbi = '10.11.0.0'
             sourceUrl = "https://github.com/$env:DIST_REPO/releases/download/${{ steps.version.outputs.tag }}/${{ steps.package.outputs.name }}"

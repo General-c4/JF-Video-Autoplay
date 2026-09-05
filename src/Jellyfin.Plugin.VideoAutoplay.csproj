@@ -3,10 +3,10 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Version>$(PluginVersion)</Version>
-    <AssemblyVersion>$(PluginVersion).0</AssemblyVersion>
-    <FileVersion>$(PluginVersion).0</FileVersion>
-    <InformationalVersion>$(PluginVersion)</InformationalVersion>
+    <Version>$(PluginReleaseVersion)</Version>
+    <AssemblyVersion>$(PluginAssemblyVersion)</AssemblyVersion>
+    <FileVersion>$(PluginAssemblyVersion)</FileVersion>
+    <InformationalVersion>$(PluginReleaseVersion)</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <LangVersion>13.0</LangVersion>
@@ -31,6 +31,7 @@
     <EmbeddedResource Include="Controllers\configPage.html" />
     <EmbeddedResource Include="Web\loader.js" />
     <EmbeddedResource Include="Web\media-cache.js" />
+    <EmbeddedResource Include="Web\runtime.js" />
     <EmbeddedResource Include="Web\video-autoplay.js" />
     <EmbeddedResource Include="Web\vendor\hls.min.js" />
     <EmbeddedResource Include="Web\vendor\hls.LICENSE.txt" />

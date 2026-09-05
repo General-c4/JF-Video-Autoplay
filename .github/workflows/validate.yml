@@ -39,8 +39,11 @@ jobs:
         run: |
           node --check src/Web/loader.js
           node --check src/Web/media-cache.js
+          node --check src/Web/runtime.js
           node --check src/Web/video-autoplay.js
           node tests/media-cache.test.js
+          node tests/runtime.test.js
+          node tests/loader.test.js
       - name: Scan NuGet dependencies
         run: dotnet list Jellyfin.Plugin.VideoAutoplay.sln package --vulnerable --include-transitive
       - name: Upload test results

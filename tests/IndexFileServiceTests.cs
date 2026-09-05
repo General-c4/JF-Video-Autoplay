@@ -16,7 +16,7 @@ public sealed class IndexFileServiceTests : IDisposable
         await File.WriteAllTextAsync(index, "<!doctype html><body><main>Jellyfin</main></body>", new UTF8Encoding(true));
         var service = new IndexFileService(_testRoot);
 
-        const string loader = "/VideoAutoplay/loader.js?v=1.1.1";
+        const string loader = "/VideoAutoplay/loader.js?v=1.1.2-rc1";
         var injected = await service.InjectAsync(index, loader, CancellationToken.None);
         Assert.True(injected.Success);
         Assert.True(injected.Changed);
@@ -48,7 +48,7 @@ public sealed class IndexFileServiceTests : IDisposable
         var index = Path.Combine(_testRoot, "index.html");
         await File.WriteAllTextAsync(index, $"<body><script plugin=\"VideoAutoplay\" defer=\"defer\" src=\"{oldLoader}\"></script></body>");
         var service = new IndexFileService(_testRoot);
-        const string currentLoader = "/VideoAutoplay/loader.js?v=1.1.1";
+        const string currentLoader = "/VideoAutoplay/loader.js?v=1.1.2-rc1";
 
         var upgraded = await service.InjectAsync(index, currentLoader, CancellationToken.None);
         var upgradedHtml = await File.ReadAllTextAsync(index);
@@ -67,7 +67,7 @@ public sealed class IndexFileServiceTests : IDisposable
 
     [Theory]
     [InlineData("/VideoAutoplay/loader.js")]
-    [InlineData("/VideoAutoplay/loader.js?v=1.1.1")]
+    [InlineData("/VideoAutoplay/loader.js?v=1.1.2-rc1")]
     public async Task RemovalRecognizesOldAndVersionedTags(string loader)
     {
         Directory.CreateDirectory(_testRoot);
@@ -98,6 +98,22 @@ public sealed class IndexFileServiceTests : IDisposable
         {
             File.Delete(outside);
         }
+    }
+
+    [Fact]
+    public async Task AllLegacyLoaderFormatsAreRemovedTogether()
+    {
+        Directory.CreateDirectory(_testRoot);
+        var index = Path.Combine(_testRoot, "index.html");
+        const string html = "<body><script src='/VideoAutoplay/loader.js'></script><script defer src='VideoAutoplay/loader.js?v=old'></script><script src='/base/VideoAutoplay/loader.js?v=1.1.1'></script><script src='/unrelated.js'></script></body>";
+        await File.WriteAllTextAsync(index, html);
+        var service = new IndexFileService(_testRoot);
+        Assert.True((await service.InjectAsync(index, "/VideoAutoplay/loader.js?v=1.1.2-rc1", CancellationToken.None)).Success);
+        var updated = await File.ReadAllTextAsync(index);
+        Assert.Equal(1, updated.Split("VideoAutoplay/loader.js").Length - 1);
+        Assert.Contains("/unrelated.js", updated);
+        Assert.True((await service.RemoveAsync(index, CancellationToken.None)).Success);
+        Assert.DoesNotContain("VideoAutoplay/loader.js", await File.ReadAllTextAsync(index));
     }
 
     [Fact]
