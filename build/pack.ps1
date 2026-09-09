@@ -25,7 +25,7 @@ New-Item -Force -ItemType Directory -Path $OutDir | Out-Null
 Write-Host "== Building plugin =="
 dotnet build ..\src\Jellyfin.Plugin.VideoAutoplay.csproj -c $Configuration
 
-$buildDir = "..\src\bin\$Configuration\net9.0"
+$buildDir = "..\src\bin\$Configuration\net10.0"
 $dll = Join-Path $buildDir "Jellyfin.Plugin.VideoAutoplay.dll"
 
 if (!(Test-Path $dll)) {

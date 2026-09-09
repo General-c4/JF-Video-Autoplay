@@ -17,10 +17,10 @@ Release binaries and the Jellyfin repository manifest are maintained separately 
 - دعم جميع الأجهزة والأحجام (سطح المكتب، جوال، شاشات تلفاز، WebViews) مع بدائل في حال غياب بعض واجهات المتصفح.
 
 التركيب (Development Build):
-1. ثبّت .NET SDK 9.0.317 ثم ابْنِ المشروع:
+1. ثبّت .NET SDK 10.0.303 ثم ابْنِ المشروع:
 	- افتح مجلد `Jellyfin.Plugin.VideoAutoplay` وشغّل:
 	  - `dotnet build -c Release`
-2. انسخ ملف `Jellyfin.Plugin.VideoAutoplay.dll` من `src/bin/Release/net9.0/` إلى مجلد الإضافات في خادم Jellyfin 10.11 لديك (عادة: `.../plugins/VideoAutoplay/`).
+2. انسخ ملف `Jellyfin.Plugin.VideoAutoplay.dll` من `src/bin/Release/net10.0/` إلى مجلد الإضافات في خادم Jellyfin 12.0 لديك (عادة: `.../plugins/VideoAutoplay/`).
 3. أعد تشغيل خادم Jellyfin.
 
 التهيئة:

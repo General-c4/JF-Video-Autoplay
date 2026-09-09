@@ -1,5 +1,5 @@
 (() => {
-  const version = '1.1.2-rc1';
+  const version = '1.1.2-rc2';
   const previous = window.VideoAutoplayLoader;
   if (previous && previous.version === version) {
     console.debug('[VA] Duplicate loader suppressed');

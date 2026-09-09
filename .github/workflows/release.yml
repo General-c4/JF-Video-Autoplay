@@ -36,7 +36,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: 9.0.317
+          dotnet-version: 10.0.303
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
@@ -96,8 +96,8 @@ jobs:
         shell: pwsh
         run: |
           $version = '${{ steps.version.outputs.version }}'
-          $dll = 'src/bin/Release/net9.0/Jellyfin.Plugin.VideoAutoplay.dll'
-          $zipPath = "artifacts/Jellyfin.Plugin.VideoAutoplay-$version.zip"
+          $dll = 'src/bin/Release/net10.0/Jellyfin.Plugin.VideoAutoplay.dll'
+          $zipPath = "artifacts/Jellyfin.Plugin.VideoAutoplay.zip"
           New-Item -ItemType Directory artifacts | Out-Null
           Compress-Archive -LiteralPath $dll -DestinationPath $zipPath -CompressionLevel Optimal
           Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -109,7 +109,7 @@ jobs:
           [xml]$props = Get-Content -Raw Directory.Build.props
           if ($assembly.Version.ToString() -cne [string]$props.Project.PropertyGroup.PluginAssemblyVersion) { throw 'DLL version mismatch.' }
           $manifest = Get-Content manifest.json -Raw | ConvertFrom-Json
-          if ($manifest[0].versions[0].targetAbi -cne '10.11.0.0') { throw 'ABI mismatch.' }
+          if ($manifest[0].versions[0].targetAbi -cne '12.0.0.0') { throw 'ABI mismatch.' }
           $sha = (Get-FileHash $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
           $md5 = (Get-FileHash $zipPath -Algorithm MD5).Hash.ToLowerInvariant()
           "zip=$zipPath" >> $env:GITHUB_OUTPUT
@@ -141,7 +141,7 @@ jobs:
           $entry = [ordered]@{
             version = ('${{ steps.version.outputs.version }}' -replace '-rc', '.')
             changelog = "Verified VideoAutoplay ${{ steps.version.outputs.version }} release."
-            targetAbi = '10.11.0.0'
+            targetAbi = '12.0.0.0'
             sourceUrl = "https://github.com/$env:DIST_REPO/releases/download/${{ steps.version.outputs.tag }}/${{ steps.package.outputs.name }}"
             checksum = '${{ steps.package.outputs.md5 }}'
             timestamp = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ',[Globalization.CultureInfo]::InvariantCulture)
