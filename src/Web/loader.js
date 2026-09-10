@@ -1,5 +1,5 @@
 (() => {
-  const version = '1.1.2-rc4';
+  const version = '1.1.2-rc5';
   const previous = window.VideoAutoplayLoader;
   if (previous && previous.version === version) {
     console.debug('[VA] Duplicate loader suppressed');
@@ -38,6 +38,7 @@
   });
   state.promise=loadScript('/VideoAutoplay/config.js')
     .then(()=>loadScript('/VideoAutoplay/media-cache.js'))
+    .then(()=>loadScript('/VideoAutoplay/client-data.js'))
     .then(()=>loadScript('/VideoAutoplay/runtime.js'))
     .then(()=>loadScript('/VideoAutoplay/video-autoplay.js'))
     .catch(()=>{

@@ -41,6 +41,7 @@ public sealed class AuthorizationTests
     [InlineData(nameof(VaController.ConfigJson))]
     [InlineData(nameof(VaController.Loader))]
     [InlineData(nameof(VaController.MediaCacheJs))]
+    [InlineData(nameof(VaController.ClientDataJs))]
     [InlineData(nameof(VaController.RuntimeJs))]
     [InlineData(nameof(VaController.AdminResponseJs))]
     [InlineData(nameof(VaController.MainJs))]

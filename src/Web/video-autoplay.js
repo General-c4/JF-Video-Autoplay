@@ -92,7 +92,7 @@ function T(key){
       isHome: function(){ return /^#\/?home(?:[?\/]|$)/.test(location.hash); },
       client: function(){
         var client=window.ApiClient;
-        try { return client && typeof client.accessToken==='function' && client.accessToken() && typeof client.getCurrentUser==='function' ? client : null; } catch(_){ return null; }
+        try { return client && typeof client.getCurrentUserId==='function' && client.getCurrentUserId() && typeof client.getItems==='function' && typeof client.getCurrentUser==='function' ? client : null; } catch(_){ return null; }
       },
       cache: function(){ return window.VideoAutoplayCache; },
       host: function(){ return window.VideoAutoplayLifecycle.findLibrarySection(document, ALT_TITLES); },
@@ -126,6 +126,7 @@ function T(key){
   function buildHero(){
   var S = { data:{Movie:[],Series:[]}, type:"Movie", idx:0, mode:"image", iframeSource:null, ytUnmuted:false, ytJsApi:false, renderGeneration:0, refreshGeneration:0, timers:[], intervals:[], objectUrls:[], refreshing:false, destroyed:false, currentMediaKey:'', manualEpochs:Object.create(null) };
   var trailerCache = MEDIA_CACHE.createTrailerCache({ positiveTtl:300000, negativeTtl:15000 });
+  var clientData = window.VideoAutoplayClientData.create(ApiClient);
 
     // ===== API =====
     var origin = location.origin, pathname = location.pathname || "";
@@ -152,10 +153,7 @@ function T(key){
     }
 
     function authHeaders(){
-      try {
-        var token = ApiClient.accessToken && ApiClient.accessToken();
-        return token ? { 'X-Emby-Token': token } : {};
-      } catch(_){ return {}; }
+      return clientData.requestHeaders();
     }
 
     function later(fn, delay){ var id=setTimeout(function(){ S.timers=S.timers.filter(function(x){return x!==id;}); fn(); },delay); S.timers.push(id); return id; }
@@ -272,33 +270,6 @@ function T(key){
         document.head.appendChild(s);
       });
       return _hlsLoadPromise;
-    }
-
-    function getLatest(type){
-      var attempt = 0;
-      var limit = MAX_ITEMS;
-      function exec(){
-        attempt++;
-        return fetch(build("Items", {
-          IncludeItemTypes: type,
-          Recursive: "true",
-          Limit: String(limit),
-          SortBy: "DateCreated",
-          SortOrder: "Descending",
-          Fields: "PrimaryImage,Overview,ProductionYear,RemoteTrailers,DateCreated,DateModified,RunTimeTicks,Genres,Studios,ImageTags,BackdropImageTags,ParentBackdropImageTags,MediaSources"
-        }), { headers:authHeaders(), cache:'no-store' }).then(function(r){
-          if (!r.ok) throw new Error("GET "+type+" -> "+r.status);
-          return r.json();
-        }).then(function(j){
-          var arr = j && (j.Items || j) || [];
-          try { arr.sort(function(a,b){ return new Date(b.DateCreated||0) - new Date(a.DateCreated||0); }); } catch(_){ }
-          return arr.slice(0, limit);
-        }).catch(function(e){
-          if (attempt < 3) return new Promise(function(res){ later(function(){ res(exec()); }, 350*attempt); });
-          throw e;
-        });
-      }
-      return exec();
     }
 
     function resolveTeaser(item){
@@ -945,9 +916,10 @@ function T(key){
       var refreshGeneration=++S.refreshGeneration;
       var selected=current(), selectedId=selected&&selected.Id, selectedType=S.type;
       var beforeMovie=listRevision(S.data.Movie), beforeSeries=listRevision(S.data.Series);
-      S.refreshPromise=Promise.all([getLatest("Movie"), getLatest("Series")]).then(function(arr){
+      S.refreshPromise=clientData.load(MAX_ITEMS).then(function(result){
         if(S.destroyed || refreshGeneration!==S.refreshGeneration) return false;
-        var movies=arr[0]||[], series=arr[1]||[];
+        var movies=result.Movie||[], series=result.Series||[];
+        if(result.failures.length) try{ console.warn('[VA] Media request failed: '+result.failures.join(', ')); }catch(_){}
         S.data.Movie=movies; S.data.Series=series;
         if (!S.data.Movie.length && !S.data.Series.length) { try{ console.warn("[VA] " + T('noItems')); }catch(_){ } return; }
         if(!S.data[S.type].length) S.type=S.data.Movie.length?"Movie":"Series";

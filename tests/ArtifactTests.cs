@@ -17,10 +17,10 @@ public sealed class ArtifactTests
     public void AssemblyAndManifestVersionsAreConsistent()
     {
         var assemblyVersion = typeof(Plugin).Assembly.GetName().Version;
-        Assert.Equal(new Version(1, 1, 2, 4), assemblyVersion);
+        Assert.Equal(new Version(1, 1, 2, 5), assemblyVersion);
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(ProjectRoot, "manifest.json")));
         var version = manifest.RootElement[0].GetProperty("versions")[0];
-        Assert.Equal("1.1.2.4", version.GetProperty("version").GetString());
+        Assert.Equal("1.1.2.5", version.GetProperty("version").GetString());
         Assert.Equal("12.0.0.0", version.GetProperty("targetAbi").GetString());
     }
 
@@ -49,11 +49,11 @@ public sealed class ArtifactTests
     [Fact]
     public void JellyfinParsesRcNumericVersionAsAnUpdate()
     {
-        var rc = new MediaBrowser.Model.Updates.VersionInfo { Version = "1.1.2.4" };
+        var rc = new MediaBrowser.Model.Updates.VersionInfo { Version = "1.1.2.5" };
         Assert.True(rc.VersionNumber > new Version(1, 1, 1, 0));
-        Assert.True(rc.VersionNumber > new Version("1.1.2.3"));
+        Assert.True(rc.VersionNumber > new Version("1.1.2.4"));
         Assert.Equal(rc.VersionNumber, typeof(Plugin).Assembly.GetName().Version);
-        Assert.Equal("1.1.2-rc4", Plugin.ToolVersion);
+        Assert.Equal("1.1.2-rc5", Plugin.ToolVersion);
     }
 
     [Fact]
@@ -63,6 +63,7 @@ public sealed class ArtifactTests
         Assert.Contains("Jellyfin.Plugin.VideoAutoplay.Controllers.configPage.html", resources);
         Assert.Contains("Jellyfin.Plugin.VideoAutoplay.Web.loader.js", resources);
         Assert.Contains("Jellyfin.Plugin.VideoAutoplay.Web.media-cache.js", resources);
+        Assert.Contains("Jellyfin.Plugin.VideoAutoplay.Web.client-data.js", resources);
         Assert.Contains("Jellyfin.Plugin.VideoAutoplay.Web.runtime.js", resources);
         Assert.Contains("Jellyfin.Plugin.VideoAutoplay.Web.admin-response.js", resources);
         Assert.Contains("Jellyfin.Plugin.VideoAutoplay.Web.video-autoplay.js", resources);
@@ -75,7 +76,7 @@ public sealed class ArtifactTests
     {
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(ProjectRoot, "manifest.json")));
         var version = manifest.RootElement[0].GetProperty("versions")[0];
-        Assert.Equal("1.1.2.4", version.GetProperty("version").GetString());
+        Assert.Equal("1.1.2.5", version.GetProperty("version").GetString());
         Assert.Equal(string.Empty, version.GetProperty("checksum").GetString());
     }
 
@@ -86,6 +87,7 @@ public sealed class ArtifactTests
         RunNode(Path.Combine(ProjectRoot, "tests", "runtime.test.js"));
         RunNode(Path.Combine(ProjectRoot, "tests", "loader.test.js"));
         RunNode(Path.Combine(ProjectRoot, "tests", "admin-response.test.js"));
+        RunNode(Path.Combine(ProjectRoot, "tests", "client-data.test.js"));
     }
 
     [Fact]
@@ -103,13 +105,19 @@ public sealed class ArtifactTests
     }
 
     [Fact]
-    public void FrontendRequestsRevisionFieldsAndNeverPutsTokensInMediaQueries()
+    public void FrontendUsesOfficialClientAndNeverPutsTokensInMediaQueries()
     {
-        var content = File.ReadAllText(Path.Combine(ProjectRoot, "src", "Web", "video-autoplay.js"));
-        Assert.Contains("DateModified", content, StringComparison.Ordinal);
-        Assert.Contains("ImageTags,BackdropImageTags,ParentBackdropImageTags,MediaSources", content, StringComparison.Ordinal);
-        Assert.DoesNotContain("api_key=", content, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("accessToken() +", content, StringComparison.Ordinal);
+        var frontend = File.ReadAllText(Path.Combine(ProjectRoot, "src", "Web", "video-autoplay.js"));
+        var clientData = File.ReadAllText(Path.Combine(ProjectRoot, "src", "Web", "client-data.js"));
+        var combined = frontend + clientData;
+        Assert.Contains("client.getItems(client.getCurrentUserId(), options(type, limit))", clientData, StringComparison.Ordinal);
+        Assert.Contains("client.setRequestHeaders(headers)", clientData, StringComparison.Ordinal);
+        Assert.Contains("DateModified", clientData, StringComparison.Ordinal);
+        Assert.Contains("ImageTags,BackdropImageTags,ParentBackdropImageTags,MediaSources", clientData, StringComparison.Ordinal);
+        Assert.DoesNotContain("fetch(build(\"Items\"", frontend, StringComparison.Ordinal);
+        Assert.DoesNotContain("X-Emby-Token", combined, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("api_key=", combined, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("accessToken", combined, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -130,9 +138,10 @@ public sealed class ArtifactTests
         var content = File.ReadAllText(Path.Combine(ProjectRoot, "src", "Web", "loader.js"));
         var config = content.IndexOf("loadScript('/VideoAutoplay/config.js')", StringComparison.Ordinal);
         var cache = content.IndexOf("loadScript('/VideoAutoplay/media-cache.js')", StringComparison.Ordinal);
+        var clientData = content.IndexOf("loadScript('/VideoAutoplay/client-data.js')", StringComparison.Ordinal);
         var main = content.IndexOf("loadScript('/VideoAutoplay/video-autoplay.js')", StringComparison.Ordinal);
-        Assert.True(config >= 0 && cache > config && main > cache);
-        Assert.Contains("const version = '1.1.2-rc4'", content, StringComparison.Ordinal);
+        Assert.True(config >= 0 && cache > config && clientData > cache && main > clientData);
+        Assert.Contains("const version = '1.1.2-rc5'", content, StringComparison.Ordinal);
         Assert.Contains("Failed to load dependency", content, StringComparison.Ordinal);
         Assert.Contains("Loader stopped", content, StringComparison.Ordinal);
         Assert.DoesNotContain("Date.now()", content, StringComparison.Ordinal);
@@ -141,6 +150,7 @@ public sealed class ArtifactTests
     [Theory]
     [InlineData(nameof(VaController.Loader))]
     [InlineData(nameof(VaController.MediaCacheJs))]
+    [InlineData(nameof(VaController.ClientDataJs))]
     [InlineData(nameof(VaController.RuntimeJs))]
     [InlineData(nameof(VaController.AdminResponseJs))]
     [InlineData(nameof(VaController.MainJs))]

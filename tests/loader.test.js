@@ -9,14 +9,14 @@ async function run(){
  const window={__VA_LOADER__:1};const context=vm.createContext({window,document,location:{pathname:'/web/index.html',href:'https://example.test/web/index.html'},URL,console,setTimeout,clearTimeout});
  vm.runInContext(source,context);vm.runInContext(source,context);
  await window.VideoAutoplayLoader.promise;
- assert.equal(inserted.length,4);assert.equal(scripts.length,4);
- assert.ok(inserted.every(s=>s.endsWith('?v=1.1.2-rc4')));
- assert.deepEqual(inserted.map(s=>new URL(s).pathname),['/VideoAutoplay/config.js','/VideoAutoplay/media-cache.js','/VideoAutoplay/runtime.js','/VideoAutoplay/video-autoplay.js']);
- vm.runInContext(source,context);assert.equal(inserted.length,4);
+  assert.equal(inserted.length,5);assert.equal(scripts.length,5);
+ assert.ok(inserted.every(s=>s.endsWith('?v=1.1.2-rc5')));
+ assert.deepEqual(inserted.map(s=>new URL(s).pathname),['/VideoAutoplay/config.js','/VideoAutoplay/media-cache.js','/VideoAutoplay/client-data.js','/VideoAutoplay/runtime.js','/VideoAutoplay/video-autoplay.js']);
+  vm.runInContext(source,context);assert.equal(inserted.length,5);
  const frontend=fs.readFileSync(path.join(__dirname,'../src/Web/video-autoplay.js'),'utf8');
  let retries=0;window.VideoAutoplayRuntime={retry(){retries++;}};
  vm.runInContext(frontend,context);vm.runInContext(frontend,context);
- assert.equal(retries,2);assert.equal(inserted.length,4);
+ assert.equal(retries,2);assert.equal(inserted.length,5);
  console.log('duplicate loader/frontend tests passed');
 }
 run().catch(error=>{console.error(error);process.exitCode=1;});

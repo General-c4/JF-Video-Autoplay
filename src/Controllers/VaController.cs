@@ -77,6 +77,10 @@ public sealed class VaController : ControllerBase
     public IActionResult MediaCacheJs() => EmbeddedFile("Jellyfin.Plugin.VideoAutoplay.Web.media-cache.js");
 
     [AllowAnonymous]
+    [HttpGet("client-data.js")]
+    public IActionResult ClientDataJs() => EmbeddedFile("Jellyfin.Plugin.VideoAutoplay.Web.client-data.js");
+
+    [AllowAnonymous]
     [HttpGet("runtime.js")]
     public IActionResult RuntimeJs() => EmbeddedFile("Jellyfin.Plugin.VideoAutoplay.Web.runtime.js");
 

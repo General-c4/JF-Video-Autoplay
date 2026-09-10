@@ -9,12 +9,12 @@
     "imageUrl": "https://raw.githubusercontent.com/General-c4/JF-Video-Autoplay-Releases/main/Image/thumb-JF.png",
     "versions": [
       {
-        "version": "1.1.2.4",
-        "changelog": "- Experimental 1.1.2 RC4: automatic bounded Jellyfin Web path discovery and injection\n- Docker, Linux package, portable, and Windows path support\n- Structured administrator diagnostics and safe UI error parsing",
+        "version": "1.1.2.5",
+        "changelog": "- Experimental 1.1.2 RC5: Jellyfin 12 official ApiClient media loading\n- Official setRequestHeaders authorization for images and yt-direct\n- Partial media failure isolation and concurrent request deduplication",
         "targetAbi": "12.0.0.0",
-        "sourceUrl": "https://github.com/General-c4/JF-Video-Autoplay-Releases/releases/download/v1.1.2-rc4/Jellyfin.Plugin.VideoAutoplay.zip",
+        "sourceUrl": "https://github.com/General-c4/JF-Video-Autoplay-Releases/releases/download/v1.1.2-rc5/Jellyfin.Plugin.VideoAutoplay.zip",
         "checksum": "",
-        "timestamp": "2026-09-10T02:00:00.000Z"
+        "timestamp": "2026-09-10T03:00:00.000Z"
       }
     ]
   }

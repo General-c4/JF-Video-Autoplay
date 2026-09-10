@@ -5,7 +5,7 @@ namespace Jellyfin.Plugin.VideoAutoplay.Tests;
 
 public sealed class JellyfinWebDiscoveryServiceTests : IDisposable
 {
-    private const string Loader = "/VideoAutoplay/loader.js?v=1.1.2-rc4";
+    private const string Loader = "/VideoAutoplay/loader.js?v=1.1.2-rc5";
     private readonly string _root = Path.Combine(Path.GetTempPath(), "video-autoplay-discovery-" + Guid.NewGuid().ToString("N"));
 
     [Theory]
