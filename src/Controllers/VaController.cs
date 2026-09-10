@@ -81,6 +81,10 @@ public sealed class VaController : ControllerBase
     public IActionResult RuntimeJs() => EmbeddedFile("Jellyfin.Plugin.VideoAutoplay.Web.runtime.js");
 
     [AllowAnonymous]
+    [HttpGet("admin-response.js")]
+    public IActionResult AdminResponseJs() => EmbeddedFile("Jellyfin.Plugin.VideoAutoplay.Web.admin-response.js");
+
+    [AllowAnonymous]
     [HttpGet("video-autoplay.js")]
     public IActionResult MainJs() => EmbeddedFile("Jellyfin.Plugin.VideoAutoplay.Web.video-autoplay.js");
 
@@ -127,18 +131,32 @@ public sealed class VaController : ControllerBase
     public IActionResult Info()
     {
         var cfg = Plugin.Instance?.Configuration ?? new PluginConfiguration();
-        var indexPath = string.Empty;
-        var exists = TryGetIndexService(out var service) && service.TryResolve(cfg.IndexHtmlPath, out indexPath);
+        var discovery = GetDiscoveryService().Discover(cfg.IndexHtmlPath, GetVersionedLoaderPath());
         return Ok(new
         {
             basePath = GetBasePath(),
-            resolvedWebPath = Plugin.WebRootPath ?? string.Empty,
+            resolvedWebPath = discovery.WebRootPath,
             configuredIndexHtmlPath = cfg.IndexHtmlPath ?? string.Empty,
-            indexHtml = exists ? indexPath : string.Empty,
-            exists,
+            indexHtml = discovery.IndexHtmlPath,
+            exists = discovery.Exists,
+            discovery,
             version = Plugin.ToolVersion,
             developer = "General-c4"
         });
+    }
+
+    [Authorize(Policy = Policies.RequiresElevation)]
+    [HttpGet("discover")]
+    public IActionResult Discover()
+    {
+        var cfg = Plugin.Instance?.Configuration ?? new PluginConfiguration();
+        var result = GetDiscoveryService().Discover(cfg.IndexHtmlPath, GetVersionedLoaderPath());
+        if (result.Success)
+        {
+            SaveDiscoveredPath(result);
+        }
+
+        return DiscoveryResponse(result);
     }
 
     [Authorize(Policy = Policies.RequiresElevation)]
@@ -146,21 +164,24 @@ public sealed class VaController : ControllerBase
     public async Task<IActionResult> Probe(CancellationToken cancellationToken)
     {
         var cfg = Plugin.Instance?.Configuration ?? new PluginConfiguration();
-        if (!TryResolveIndex(cfg.IndexHtmlPath, out var path))
+        var discovery = GetDiscoveryService().Discover(cfg.IndexHtmlPath, GetVersionedLoaderPath());
+        if (!discovery.Success)
         {
-            return NotFound(new { ok = false, error = "invalid_index_path" });
+            return DiscoveryResponse(discovery);
         }
 
         try
         {
-            var html = await System.IO.File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+            SaveDiscoveredPath(discovery);
+            var html = await System.IO.File.ReadAllTextAsync(discovery.IndexHtmlPath, cancellationToken).ConfigureAwait(false);
             var loaderPath = GetVersionedLoaderPath();
             return Ok(new
             {
                 ok = true,
                 injected = IndexFileService.ContainsLoader(html, loaderPath),
                 legacyTagPresent = html.Contains(IndexFileService.Marker, StringComparison.OrdinalIgnoreCase)
-                    && !IndexFileService.ContainsLoader(html, loaderPath)
+                    && !IndexFileService.ContainsLoader(html, loaderPath),
+                discovery
             });
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -175,27 +196,35 @@ public sealed class VaController : ControllerBase
     public async Task<IActionResult> InjectNow(CancellationToken cancellationToken)
     {
         var cfg = Plugin.Instance?.Configuration ?? new PluginConfiguration();
-        if (!TryGetIndexService(out var service))
+        var loaderPath = GetVersionedLoaderPath();
+        var automatic = await new JellyfinWebInjectionService(GetDiscoveryService())
+            .InjectAsync(cfg.IndexHtmlPath, loaderPath, SaveDiscoveredPath, cancellationToken)
+            .ConfigureAwait(false);
+        if (!automatic.Discovery.Success)
         {
-            return BadRequest(new { ok = false, error = "web_root_unavailable" });
+            return DiscoveryResponse(automatic.Discovery);
         }
 
-        var loaderPath = GetVersionedLoaderPath();
-        var result = await service.InjectAsync(cfg.IndexHtmlPath ?? string.Empty, loaderPath, cancellationToken).ConfigureAwait(false);
-        return MutationResponse(result);
+        return MutationResponse(automatic.Mutation!);
     }
+
+    [Authorize(Policy = Policies.RequiresElevation)]
+    [HttpPost("auto-inject")]
+    public Task<IActionResult> AutoInject(CancellationToken cancellationToken) => InjectNow(cancellationToken);
 
     [Authorize(Policy = Policies.RequiresElevation)]
     [HttpPost("remove-now")]
     public async Task<IActionResult> RemoveNow(CancellationToken cancellationToken)
     {
         var cfg = Plugin.Instance?.Configuration ?? new PluginConfiguration();
-        if (!TryGetIndexService(out var service))
+        var discovery = GetDiscoveryService().Discover(cfg.IndexHtmlPath, GetVersionedLoaderPath());
+        if (!discovery.Success)
         {
-            return BadRequest(new { ok = false, error = "web_root_unavailable" });
+            return DiscoveryResponse(discovery);
         }
 
-        var result = await service.RemoveAsync(cfg.IndexHtmlPath ?? string.Empty, cancellationToken).ConfigureAwait(false);
+        var service = new IndexFileService(discovery.WebRootPath);
+        var result = await service.RemoveAsync(discovery.IndexHtmlPath, cancellationToken).ConfigureAwait(false);
         return MutationResponse(result);
     }
 
@@ -212,9 +241,13 @@ public sealed class VaController : ControllerBase
             return StatusCode(StatusCodes.Status503ServiceUnavailable, new { ok = false, error = "plugin_not_ready" });
         }
 
-        if (!string.IsNullOrWhiteSpace(posted.IndexHtmlPath) && !TryResolveIndex(posted.IndexHtmlPath, out _))
+        if (!string.IsNullOrWhiteSpace(posted.IndexHtmlPath))
         {
-            return BadRequest(new { ok = false, error = "invalid_index_path" });
+            var validation = GetDiscoveryService().ValidateConfigured(posted.IndexHtmlPath, GetVersionedLoaderPath());
+            if (!validation.Success)
+            {
+                return DiscoveryResponse(validation);
+            }
         }
 
         if (posted.EnableYtDirect
@@ -272,22 +305,46 @@ public sealed class VaController : ControllerBase
         return File(memory.ToArray(), "application/javascript; charset=utf-8");
     }
 
-    private static bool TryGetIndexService(out IndexFileService service)
+    private static JellyfinWebDiscoveryService GetDiscoveryService()
     {
-        service = null!;
-        if (string.IsNullOrWhiteSpace(Plugin.WebRootPath))
-        {
-            return false;
-        }
-
-        service = new IndexFileService(Plugin.WebRootPath);
-        return true;
+        var webPath = Plugin.HostApplicationPaths?.WebPath;
+        return new JellyfinWebDiscoveryService(JellyfinWebDiscoveryInputs.Current(webPath));
     }
 
-    private static bool TryResolveIndex(string? configuredPath, out string path)
+    private static void SaveDiscoveredPath(JellyfinWebDiscoveryResult discovery)
     {
-        path = string.Empty;
-        return TryGetIndexService(out var service) && service.TryResolve(configuredPath, out path);
+        if (Plugin.Instance is null || string.IsNullOrWhiteSpace(discovery.IndexHtmlPath))
+        {
+            return;
+        }
+
+        var cfg = Plugin.Instance.Configuration ?? new PluginConfiguration();
+        if (!string.Equals(cfg.IndexHtmlPath, discovery.IndexHtmlPath, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
+        {
+            cfg.IndexHtmlPath = discovery.IndexHtmlPath;
+            Plugin.Instance.UpdateConfiguration(cfg);
+        }
+
+        Plugin.SetResolvedIndex(discovery.WebRootPath, discovery.IndexHtmlPath);
+    }
+
+    private IActionResult DiscoveryResponse(JellyfinWebDiscoveryResult result)
+    {
+        if (result.Success)
+        {
+            _logger.LogInformation("[VA] Jellyfin Web discovered using {DiscoverySource} at {WebRootPath}", result.Source, result.WebRootPath);
+            return Ok(new { ok = true, discovery = result });
+        }
+
+        _logger.LogWarning("[VA] Jellyfin Web discovery failed with code {ErrorCode}; preferred source {DiscoverySource}", result.ErrorCode, result.Source);
+        var status = result.ErrorCode switch
+        {
+            "discovery_not_found" or "index_not_found" => StatusCodes.Status404NotFound,
+            "selection_required" => StatusCodes.Status409Conflict,
+            "index_not_writable" => StatusCodes.Status423Locked,
+            _ => StatusCodes.Status400BadRequest
+        };
+        return StatusCode(status, new { ok = false, error = result.ErrorCode, message = result.Message, discovery = result });
     }
 
     private IActionResult MutationResponse(IndexMutationResult result)

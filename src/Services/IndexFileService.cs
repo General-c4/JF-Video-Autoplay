@@ -150,6 +150,20 @@ public sealed class IndexFileService
                     File.Move(tempPath, path, true);
                 }
 
+                var verified = await File.ReadAllTextAsync(path, Encoding.UTF8, cancellationToken).ConfigureAwait(false);
+                if (inject
+                    && (TagRegex.Matches(verified).Count != 1 || !ContainsLoader(verified, loaderPath)))
+                {
+                    File.Copy(backupPath, path, true);
+                    return IndexMutationResult.Fail("post_write_validation_failed");
+                }
+
+                if (!inject && TagRegex.Matches(verified).Count != 0)
+                {
+                    File.Copy(backupPath, path, true);
+                    return IndexMutationResult.Fail("post_write_validation_failed");
+                }
+
                 return IndexMutationResult.Ok(true);
             }
             finally

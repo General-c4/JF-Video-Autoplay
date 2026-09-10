@@ -18,6 +18,7 @@ namespace Jellyfin.Plugin.VideoAutoplay
         internal static string BasePath { get; private set; } = string.Empty;
         internal static string? ResolvedWebPath { get; private set; }
         internal static string? WebRootPath { get; private set; }
+        internal static IApplicationPaths HostApplicationPaths { get; private set; } = null!;
 
         private readonly ILogger<Plugin> _logger;
 
@@ -29,6 +30,7 @@ namespace Jellyfin.Plugin.VideoAutoplay
         ) : base(paths, serializer)
         {
             Instance = this;
+            HostApplicationPaths = paths;
             _logger = logger;
 
             // BasePath (يدعم /jellyfin عند العكس)
@@ -75,6 +77,12 @@ namespace Jellyfin.Plugin.VideoAutoplay
         public override string Name => "Video Autoplay";
         public override string Description => "Injects a hero auto-play section above “مكتبتي” across pages.";
         public override Guid Id => Guid.Parse("f8aab2db-7f0a-4c43-8b6c-9c9a1a3d9e01");
+
+        internal static void SetResolvedIndex(string webRootPath, string indexHtmlPath)
+        {
+            WebRootPath = webRootPath;
+            ResolvedWebPath = webRootPath;
+        }
 
         // تعريض الملفات المضمّنة تحت /web
         public IEnumerable<PluginPageInfo> GetPages()

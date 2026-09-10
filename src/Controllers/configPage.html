@@ -163,19 +163,23 @@
             </div>
 
             <div class="inputContainer">
-              <label class="inputLabel" id="t_indexPathLabel">المسار الكامل لملف <code>index.html</code></label>
-              <input is="emby-input" type="text" id="indexHtmlPath" class="emby-input"
-                     placeholder="/volume1/docker/jellyfin/jellyfin-web/index.html" />
-            </div>
-
-            <div class="inputContainer">
               <div class="va-actionButtons">
+                <button is="emby-button" id="btnAutoInject" type="button" class="raised block emby-button button-submit"><span id="t_btnAutoInject">اكتشاف المسار والحقن تلقائيًا</span></button>
+                <button is="emby-button" id="btnDiscover" type="button" class="raised block emby-button"><span id="t_btnDiscover">البحث عن مسار Jellyfin Web</span></button>
                 <button is="emby-button" id="btnProbe" type="button" class="raised block emby-button"><span id="t_btnProbe">فحص الحالة</span></button>
                 <button is="emby-button" id="btnInject" type="button" class="raised block emby-button"><span id="t_btnInject">حقن الآن</span></button>
                 <button is="emby-button" id="btnRemove" type="button" class="raised block emby-button"><span id="t_btnRemove">إزالة الوسم</span></button>
                 <button is="emby-button" id="btnInfo" type="button" class="raised block emby-button"><span id="t_btnInfo">تحديث معلومات المسار</span></button>
               </div>
             </div>
+
+            <details class="inputContainer">
+              <summary id="t_manualPathSummary">المسار اليدوي المتقدم</summary>
+              <label class="inputLabel" id="t_indexPathLabel">المسار الكامل لملف <code>index.html</code></label>
+              <input is="emby-input" type="text" id="indexHtmlPath" class="emby-input"
+                     placeholder="/jellyfin/jellyfin-web/index.html" />
+              <div class="fieldDescription" id="t_containerPathWarning">أدخل المسار كما يظهر داخل حاوية Jellyfin، وليس مسار Synology المضيف.</div>
+            </details>
 
             <div class="inputContainer">
               <label class="inputLabel" id="t_statusLabel">الحالة</label>
@@ -188,6 +192,13 @@
                 <div>BasePath: <code id="infoBasePath">—</code></div>
                 <div>Resolved Web Path: <code id="infoResolvedWeb">—</code></div>
                 <div><span id="t_infoIndex">Index.html</span>: <code id="infoIndex">—</code> <span id="infoExists" style="margin-inline-start:6px;"></span></div>
+                <div><span id="t_infoSource">مصدر الاكتشاف</span>: <code id="infoSource">—</code></div>
+                <div><span id="t_infoReadable">قابل للقراءة</span>: <code id="infoReadable">—</code></div>
+                <div><span id="t_infoWritable">قابل للكتابة</span>: <code id="infoWritable">—</code></div>
+                <div><span id="t_infoRecognized">Jellyfin Web معروف</span>: <code id="infoRecognized">—</code></div>
+                <div><span id="t_infoInjection">حالة الحقن</span>: <code id="infoInjection">—</code></div>
+                <div><span id="t_infoLoader">نسخة المحمّل</span>: <code id="infoLoader">—</code></div>
+                <div><span id="t_infoContainer">بيئة حاوية</span>: <code id="infoContainer">—</code></div>
               </div>
             </div>
 
@@ -203,6 +214,7 @@
       </div>
     </div>
 
+    <script type="text/javascript" src="../VideoAutoplay/admin-response.js?v=1.1.2-rc4"></script>
     <script type="text/javascript">
       (function () {
         var pluginId = (window.PluginId || 'f8aab2db-7f0a-4c43-8b6c-9c9a1a3d9e01');
@@ -236,6 +248,10 @@
             ytForce18Yes: 'نعم (أعلى توافق)',
             injectSection: 'الحقن في واجهة Jellyfin',
             indexPathLabel: 'المسار الكامل لملف <code>index.html</code>',
+            manualPathSummary: 'المسار اليدوي المتقدم',
+            containerPathWarning: 'أدخل المسار كما يظهر داخل حاوية Jellyfin، وليس مسار Synology المضيف.',
+            btnAutoInject: 'اكتشاف المسار والحقن تلقائيًا',
+            btnDiscover: 'البحث عن مسار Jellyfin Web',
             btnProbe: 'فحص الحالة',
             btnInject: 'حقن الآن',
             btnRemove: 'إزالة الوسم',
@@ -243,6 +259,8 @@
             statusLabel: 'الحالة',
             infoLabel: 'معلومات',
             infoIndex: 'Index.html',
+            infoSource: 'مصدر الاكتشاف', infoReadable: 'قابل للقراءة', infoWritable: 'قابل للكتابة',
+            infoRecognized: 'Jellyfin Web معروف', infoInjection: 'حالة الحقن', infoLoader: 'نسخة المحمّل', infoContainer: 'بيئة حاوية',
             save: 'حفظ الإعدادات',
             existsYes: '✓ موجود',
             existsNo: '✗ غير موجود',
@@ -280,6 +298,10 @@
             ytForce18Yes: 'Yes (highest compatibility)',
             injectSection: 'Jellyfin Web injection',
             indexPathLabel: 'Full path to <code>index.html</code>',
+            manualPathSummary: 'Advanced manual path',
+            containerPathWarning: 'Enter the path visible inside the Jellyfin container, not the Synology host path.',
+            btnAutoInject: 'Auto-detect path and inject',
+            btnDiscover: 'Detect Jellyfin Web path',
             btnProbe: 'Probe status',
             btnInject: 'Inject now',
             btnRemove: 'Remove tag',
@@ -287,6 +309,8 @@
             statusLabel: 'Status',
             infoLabel: 'Info',
             infoIndex: 'Index.html',
+            infoSource: 'Discovery source', infoReadable: 'Readable', infoWritable: 'Writable',
+            infoRecognized: 'Recognized Jellyfin Web', infoInjection: 'Injection status', infoLoader: 'Loader version', infoContainer: 'Container environment',
             save: 'Save settings',
             existsYes: '✓ exists',
             existsNo: '✗ missing',
@@ -346,12 +370,19 @@
           setTxt('t_ytForce18Yes', t('ytForce18Yes'));
           setTxt('t_injectSection', t('injectSection'));
           setTxt('t_btnProbe', t('btnProbe'));
+          setTxt('t_btnAutoInject', t('btnAutoInject'));
+          setTxt('t_btnDiscover', t('btnDiscover'));
           setTxt('t_btnInject', t('btnInject'));
           setTxt('t_btnRemove', t('btnRemove'));
           setTxt('t_btnInfo', t('btnInfo'));
           setTxt('t_statusLabel', t('statusLabel'));
           setTxt('t_infoLabel', t('infoLabel'));
           setTxt('t_infoIndex', t('infoIndex'));
+          setTxt('t_manualPathSummary', t('manualPathSummary'));
+          setTxt('t_containerPathWarning', t('containerPathWarning'));
+          setTxt('t_infoSource', t('infoSource')); setTxt('t_infoReadable', t('infoReadable'));
+          setTxt('t_infoWritable', t('infoWritable')); setTxt('t_infoRecognized', t('infoRecognized'));
+          setTxt('t_infoInjection', t('infoInjection')); setTxt('t_infoLoader', t('infoLoader')); setTxt('t_infoContainer', t('infoContainer'));
           setTxt('t_save', t('save'));
 
           var idxLabel = document.getElementById('t_indexPathLabel');
@@ -374,15 +405,31 @@
         function apiUrl(path){ return ApiClient.getUrl('VideoAutoplay/' + path); }
         function getJSON(path){ return ApiClient.getJSON(apiUrl(path)); }
         function post(path, body){
-          return ApiClient.ajax({
+          return Promise.resolve(ApiClient.ajax({
             type: 'POST',
             url: apiUrl(path),
             contentType: body ? 'application/json; charset=UTF-8' : undefined,
             data: body ? JSON.stringify(body) : undefined
+          })).then(window.VideoAutoplayAdminResponse.ensureSuccess);
+        }
+        function errorText(error){
+          return window.VideoAutoplayAdminResponse.describe(error).then(function(info){
+            var messages = getLang() === 'en' ? {
+              discovery_not_found:'Jellyfin Web was not found inside the container.', index_not_found:'index.html is not visible inside the Jellyfin container.',
+              index_not_writable:'index.html exists but is not writable.', selection_required:'Multiple Jellyfin Web paths were found; select one in the advanced field.',
+              not_jellyfin_web:'The selected file is not a recognized Jellyfin Web index.html.'
+            } : {
+              discovery_not_found:'لم يتم العثور على Jellyfin Web داخل الحاوية.', index_not_found:'مسار index.html غير موجود داخل حاوية Jellyfin.',
+              index_not_writable:'ملف index.html موجود لكنه غير قابل للكتابة.', selection_required:'تم العثور على عدة مسارات؛ اختر المسار الصحيح من الحقل المتقدم.',
+              not_jellyfin_web:'الملف المحدد ليس index.html معروفًا لـ Jellyfin Web.'
+            };
+            return messages[info.code] || info.message || (getLang()==='en'?'Request failed':'فشل الطلب');
           });
         }
+        function showFailure(prefix, error){ return errorText(error).then(function(message){ setStatus(prefix + ': ' + message, true); }); }
 
         function fillInfoView(info){
+          var discovery = info.discovery || info;
           document.getElementById('infoBasePath').textContent    = info.basePath || '';
           document.getElementById('infoResolvedWeb').textContent = info.resolvedWebPath || '';
           document.getElementById('infoIndex').textContent       = info.indexHtml || info.configuredIndexHtmlPath || '';
@@ -391,6 +438,13 @@
             ex.textContent = info.exists ? t('existsYes') : t('existsNo');
             ex.style.color = info.exists ? '#7CFC00' : '#ff6b6b';
           } else { ex.textContent=''; }
+          document.getElementById('infoSource').textContent = discovery.source || '';
+          document.getElementById('infoReadable').textContent = String(!!discovery.readable);
+          document.getElementById('infoWritable').textContent = String(!!discovery.writable);
+          document.getElementById('infoRecognized').textContent = String(!!discovery.isRecognizedJellyfinWeb);
+          document.getElementById('infoInjection').textContent = discovery.isCurrentInjection ? t('injectedYes') : t('injectedNo');
+          document.getElementById('infoLoader').textContent = info.version || '';
+          document.getElementById('infoContainer').textContent = discovery.containerEnvironment || 'unknown';
 
           try {
             var y = new Date().getFullYear();
@@ -399,6 +453,20 @@
             var footer = document.getElementById('vaFooter');
             if (footer) footer.textContent = '© ' + y + ' - Developed by ' + dev + ' | Version ' + ver;
           } catch(_){ }
+        }
+        function discover(){
+          setStatus(getLang()==='en'?'Detecting Jellyfin Web...':'جاري اكتشاف Jellyfin Web...');
+          return getJSON('discover').then(function(result){
+            var discovery=result.discovery||result; fillInfoView(discovery);
+            if(discovery.indexHtmlPath) document.getElementById('indexHtmlPath').value=discovery.indexHtmlPath;
+            setStatus(getLang()==='en'?'Jellyfin Web path detected.':'تم اكتشاف مسار Jellyfin Web.');
+            return refreshInfo();
+          }).catch(function(error){return showFailure(getLang()==='en'?'Discovery failed':'فشل الاكتشاف',error);});
+        }
+        function autoInject(){
+          setStatus(t('injecting'));
+          return post('auto-inject').then(function(){setStatus(t('injectOk'));return refreshInfo().then(probe);})
+            .catch(function(error){return showFailure(getLang()==='en'?'Injection failed':'فشل الحقن',error);});
         }
         function refreshInfo(){
           return getJSON('info').then(function(info){
@@ -413,19 +481,19 @@
           setStatus(t('probing'));
           return getJSON('probe')
             .then(function(res){ setStatus(res.injected ? t('injectedYes') : t('injectedNo')); })
-            .catch(function(e){ setStatus('فشل الفحص: ' + (e && (e.statusText || e.message || e)), true); });
+            .catch(function(e){ return showFailure(getLang()==='en'?'Probe failed':'فشل الفحص', e); });
         }
         function injectNow(){
           setStatus(t('injecting'));
           return post('inject-now')
             .then(function(){ setStatus(t('injectOk')); return probe(); })
-            .catch(function(e){ setStatus('فشل الحقن: ' + (e && (e.statusText || e.message || e)), true); });
+            .catch(function(e){ return showFailure(getLang()==='en'?'Injection failed':'فشل الحقن', e); });
         }
         function removeNow(){
           setStatus(t('removing'));
           return post('remove-now')
             .then(function(){ setStatus(t('removeOk')); return probe(); })
-            .catch(function(e){ setStatus('فشلت الإزالة: ' + (e && (e.statusText || e.message || e)), true); });
+            .catch(function(e){ return showFailure(getLang()==='en'?'Removal failed':'فشلت الإزالة', e); });
         }
 
         // تحميل/حفظ الإعدادات — أولاً عبر ApiClient، ولو فشل نستخدم /VideoAutoplay/conf
@@ -502,7 +570,7 @@
             .catch(function(){ return loadCfg_viaController(); })
             .then(function(){ return refreshInfo(); })
             .then(function(){ Dashboard.hideLoadingMsg(); })
-            .catch(function(e){ Dashboard.hideLoadingMsg(); setStatus('Load failed: ' + (e && (e.statusText || e.message || e)), true); });
+            .catch(function(e){ Dashboard.hideLoadingMsg(); return showFailure(getLang()==='en'?'Load failed':'فشل التحميل', e); });
         }
 
         function save(e){
@@ -511,7 +579,7 @@
           saveCfg_viaApiClient()
             .catch(function(){ return saveCfg_viaController(); })
             .then(function(){ setStatus(t('saved')); return refreshInfo(); })
-            .catch(function(e){ setStatus('Save failed: ' + (e && (e.statusText || e.message || e)), true); })
+            .catch(function(e){ return showFailure(getLang()==='en'?'Save failed':'فشل الحفظ', e); })
             .finally(function(){ Dashboard.hideLoadingMsg(); });
           return false;
         }
@@ -524,6 +592,8 @@
             document.querySelector(formSel).addEventListener('submit', save);
             document.getElementById('uiLanguage').addEventListener('change', function(){ applyLang(); }, false);
             document.getElementById('btnProbe').addEventListener('click', probe);
+            document.getElementById('btnAutoInject').addEventListener('click', autoInject);
+            document.getElementById('btnDiscover').addEventListener('click', discover);
             document.getElementById('btnInject').addEventListener('click', injectNow);
             document.getElementById('btnRemove').addEventListener('click', removeNow);
             document.getElementById('btnInfo').addEventListener('click', refreshInfo);

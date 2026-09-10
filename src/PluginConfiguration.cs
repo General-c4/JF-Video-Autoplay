@@ -20,11 +20,11 @@ namespace Jellyfin.Plugin.VideoAutoplay
         public bool AutoplayMuted { get; set; } = true;
 
         // مسار ملف index.html الحقيقي (لأجل الحقن)
-        // مثال: /volume1/docker/jellyfin/jellyfin-web/index.html
+        // اختياري ومتقدم: يجب أن يكون المسار مرئيًا داخل عملية/حاوية Jellyfin.
         public string? IndexHtmlPath { get; set; } = "";
 
         // عناوين بديلة لبلوك “مكتبتي” (للواجهة الأمامية إن احتجت)
-        public string[] AltTitles { get; set; } = new[] { "مكتبتي", "My Library", "المكتبة" };
+        public string[] AltTitles { get; set; } = new[] { "محتواي", "مكتبتي", "المكتبة", "My Media", "My Library", "Library" };
 
         // تمكين استخراج رابط مباشر من YouTube عبر yt-dlp (تجريبي)
         public bool EnableYtDirect { get; set; } = false;

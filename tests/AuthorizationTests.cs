@@ -12,8 +12,10 @@ public sealed class AuthorizationTests
     {
         nameof(VaController.YtDirect),
         nameof(VaController.Info),
+        nameof(VaController.Discover),
         nameof(VaController.Probe),
         nameof(VaController.InjectNow),
+        nameof(VaController.AutoInject),
         nameof(VaController.RemoveNow),
         nameof(VaController.GetConf),
         nameof(VaController.SaveConf)
@@ -40,6 +42,7 @@ public sealed class AuthorizationTests
     [InlineData(nameof(VaController.Loader))]
     [InlineData(nameof(VaController.MediaCacheJs))]
     [InlineData(nameof(VaController.RuntimeJs))]
+    [InlineData(nameof(VaController.AdminResponseJs))]
     [InlineData(nameof(VaController.MainJs))]
     [InlineData(nameof(VaController.HlsJs))]
     public void OnlyStaticClientAssetsAllowAnonymousAccess(string methodName)

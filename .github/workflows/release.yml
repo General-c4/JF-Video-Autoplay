@@ -86,10 +86,12 @@ jobs:
           node --check src/Web/loader.js
           node --check src/Web/media-cache.js
           node --check src/Web/runtime.js
+          node --check src/Web/admin-response.js
           node --check src/Web/video-autoplay.js
           node tests/media-cache.test.js
           node tests/runtime.test.js
           node tests/loader.test.js
+          node tests/admin-response.test.js
           dotnet list Jellyfin.Plugin.VideoAutoplay.sln package --vulnerable --include-transitive
       - name: Build and validate canonical ZIP
         id: package

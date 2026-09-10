@@ -10,7 +10,7 @@ async function run(){
  vm.runInContext(source,context);vm.runInContext(source,context);
  await window.VideoAutoplayLoader.promise;
  assert.equal(inserted.length,4);assert.equal(scripts.length,4);
- assert.ok(inserted.every(s=>s.endsWith('?v=1.1.2-rc3')));
+ assert.ok(inserted.every(s=>s.endsWith('?v=1.1.2-rc4')));
  assert.deepEqual(inserted.map(s=>new URL(s).pathname),['/VideoAutoplay/config.js','/VideoAutoplay/media-cache.js','/VideoAutoplay/runtime.js','/VideoAutoplay/video-autoplay.js']);
  vm.runInContext(source,context);assert.equal(inserted.length,4);
  const frontend=fs.readFileSync(path.join(__dirname,'../src/Web/video-autoplay.js'),'utf8');
