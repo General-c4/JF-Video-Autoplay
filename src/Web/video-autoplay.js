@@ -14,7 +14,7 @@ var CFG = window.JF_VA_CONFIG || {};
 var ApiClient;
 var ALT_TITLES = (Array.isArray(CFG.altTitles) && CFG.altTitles.length
   ? CFG.altTitles
-  : ["مكتبتي","My Library","المكتبة","Library","我的资料库","Моя библиотека"]);
+  : ["محتواي","مكتبتي","المكتبة","My Media","My Library","Library","我的资料库","Моя библиотека"]);
 var MAX_ITEMS = (function(m){ m = parseInt(m,10); if(!m||m<1) return 5; return Math.min(10, m); })(CFG.maxItems);
 var YT_PREFER_MP4 = !!CFG.ytPreferMp4;
 var YT_FORCE_18 = !!CFG.ytForceFormat18;
@@ -85,15 +85,17 @@ function T(key){
   function onReady(fn){ if (document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', fn, {once:true}); } else { fn(); } }
   onReady(function(){
     window.__VA_FRONTEND_PENDING__ = false;
+    var nativeMethods = window.VideoAutoplayLifecycle.browserMethods(window);
     window.VideoAutoplayRuntime = window.VideoAutoplayLifecycle.create({
-      now: Date.now, setTimeout: setTimeout, clearTimeout: clearTimeout,
+      now: nativeMethods.now, setTimeout: nativeMethods.setTimeout, clearTimeout: nativeMethods.clearTimeout,
       configKey: JSON.stringify(CFG),
       isHome: function(){ return /^#\/?home(?:[?\/]|$)/.test(location.hash); },
       client: function(){
         var client=window.ApiClient;
         try { return client && typeof client.accessToken==='function' && client.accessToken() && typeof client.getCurrentUser==='function' ? client : null; } catch(_){ return null; }
       },
-      cache: function(){ return window.VideoAutoplayCache; }, host: findLibrarySection,
+      cache: function(){ return window.VideoAutoplayCache; },
+      host: function(){ return window.VideoAutoplayLifecycle.findLibrarySection(document, ALT_TITLES); },
       configuration: function(){
         var base=(location.pathname.split('/web/')[0]||'').replace(/\/+$/,'');
         return fetch(base+'/VideoAutoplay/config.json',{cache:'no-store',signal:AbortSignal.timeout(10000)}).then(function(r){if(!r.ok)throw new Error('config_unavailable');return r.json();});
@@ -117,23 +119,6 @@ function T(key){
       return buildHero();
     });
   });
-
-  // === 1) ابحث عن قسم "مكتبتي" في أي صفحة، مش الهوم فقط ===
-  function normalizeText(s){ return String(s||"").replace(/\s+/g," ").trim().toLowerCase(); }
-  function findLibrarySection() {
-    // broader query to catch future classes
-    var sections = document.querySelectorAll('.verticalSection');
-    for (var i=0;i<sections.length;i++){
-      var sec = sections[i];
-      var h2 = sec.querySelector('h2');
-      if (!h2) continue;
-      var t = normalizeText(h2.textContent||'');
-      for (var j=0;j<ALT_TITLES.length;j++){
-        if (t === normalizeText(ALT_TITLES[j]) && sec.getClientRects().length) return sec;
-      }
-    }
-    return null;
-  }
 
   // ===========================
   //       HERO COMPONENT
@@ -354,7 +339,7 @@ function T(key){
             runtime:window.VideoAutoplayRuntime,
             configuration:JSON.stringify(window.JF_VA_CONFIG||{}),
             available:CFG.ytDlpAvailable!==false,
-            now:Date.now,
+            now:function(){return Date.now();},
             user:function(){return ApiClient.getCurrentUser();},
             fallback:function(){return {ok:false};},
             warn:function(){console.warn('[VA] yt-dlp executable was not found or is not executable on the Jellyfin server.');},

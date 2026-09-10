@@ -17,10 +17,10 @@ public sealed class ArtifactTests
     public void AssemblyAndManifestVersionsAreConsistent()
     {
         var assemblyVersion = typeof(Plugin).Assembly.GetName().Version;
-        Assert.Equal(new Version(1, 1, 2, 2), assemblyVersion);
+        Assert.Equal(new Version(1, 1, 2, 3), assemblyVersion);
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(ProjectRoot, "manifest.json")));
         var version = manifest.RootElement[0].GetProperty("versions")[0];
-        Assert.Equal("1.1.2.2", version.GetProperty("version").GetString());
+        Assert.Equal("1.1.2.3", version.GetProperty("version").GetString());
         Assert.Equal("12.0.0.0", version.GetProperty("targetAbi").GetString());
     }
 
@@ -49,11 +49,11 @@ public sealed class ArtifactTests
     [Fact]
     public void JellyfinParsesRcNumericVersionAsAnUpdate()
     {
-        var rc = new MediaBrowser.Model.Updates.VersionInfo { Version = "1.1.2.2" };
+        var rc = new MediaBrowser.Model.Updates.VersionInfo { Version = "1.1.2.3" };
         Assert.True(rc.VersionNumber > new Version(1, 1, 1, 0));
-        Assert.True(rc.VersionNumber > new Version("1.1.2.1"));
+        Assert.True(rc.VersionNumber > new Version("1.1.2.2"));
         Assert.Equal(rc.VersionNumber, typeof(Plugin).Assembly.GetName().Version);
-        Assert.Equal("1.1.2-rc2", Plugin.ToolVersion);
+        Assert.Equal("1.1.2-rc3", Plugin.ToolVersion);
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public sealed class ArtifactTests
     {
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(ProjectRoot, "manifest.json")));
         var version = manifest.RootElement[0].GetProperty("versions")[0];
-        Assert.Equal("1.1.2.2", version.GetProperty("version").GetString());
+        Assert.Equal("1.1.2.3", version.GetProperty("version").GetString());
         Assert.Equal(string.Empty, version.GetProperty("checksum").GetString());
     }
 
@@ -118,7 +118,7 @@ public sealed class ArtifactTests
         var cache = content.IndexOf("loadScript('/VideoAutoplay/media-cache.js')", StringComparison.Ordinal);
         var main = content.IndexOf("loadScript('/VideoAutoplay/video-autoplay.js')", StringComparison.Ordinal);
         Assert.True(config >= 0 && cache > config && main > cache);
-        Assert.Contains("const version = '1.1.2-rc2'", content, StringComparison.Ordinal);
+        Assert.Contains("const version = '1.1.2-rc3'", content, StringComparison.Ordinal);
         Assert.Contains("Failed to load dependency", content, StringComparison.Ordinal);
         Assert.Contains("Loader stopped", content, StringComparison.Ordinal);
         Assert.DoesNotContain("Date.now()", content, StringComparison.Ordinal);

@@ -1,6 +1,49 @@
 'use strict';
 const assert = require('node:assert/strict');
 const lifecycle = require('../src/Web/runtime.js');
+function nativeReceiverTests() {
+  let timeoutId=0, cleared=0;
+  const browser={
+    Date:{now(){assert.equal(this,browser.Date);return 42;}},
+    setTimeout(callback,delay){assert.equal(this,browser);assert.equal(typeof callback,'function');assert.equal(delay,100);return ++timeoutId;},
+    clearTimeout(id){assert.equal(this,browser);cleared=id;}
+  };
+  const methods=lifecycle.browserMethods(browser);
+  assert.equal(methods.now(),42);
+  assert.equal(methods.setTimeout(()=>{},100),1);
+  methods.clearTimeout(1);assert.equal(cleared,1);
+}
+function section(title, options={}) {
+  const heading=title==null?null:{textContent:title};
+  return {
+    getClientRects:()=>options.hidden?[]:[{}],
+    querySelector(selector){
+      if(selector==='.sectionTitle, h2')return heading;
+      return options.libraryTile?{}:null;
+    },
+    closest:()=>options.home===false?null:{}
+  };
+}
+function librarySectionTests() {
+  const titles=['محتواي','مكتبتي','المكتبة','My Media','My Library','Library'];
+  for(const title of titles){const expected=section(title);assert.equal(lifecycle.findLibrarySection({querySelectorAll:()=>[expected]},titles),expected);}
+  const wrong=section('Continue Watching'),structural=section('Something new',{libraryTile:true});
+  assert.equal(lifecycle.findLibrarySection({querySelectorAll:()=>[wrong,structural]},titles),structural);
+  assert.equal(lifecycle.findLibrarySection({querySelectorAll:()=>[wrong,section('Latest Media'),section('Favorites')]},titles),null);
+  assert.equal(lifecycle.findLibrarySection({querySelectorAll:()=>[section('My Media',{hidden:true})]},titles),null);
+}
+function boundedFailureTests() {
+  let observerCallback, scheduleLogs=0;
+  const runtime=lifecycle.create({
+    now:()=>0,setTimeout(){throw new TypeError('Illegal invocation');},clearTimeout(){},isHome:()=>true,
+    client:()=>({}),cache:()=>({}),host:()=>null,mount(){},on(){},off(){},
+    observe(fn){observerCallback=fn;return{disconnect(){}};},log(message){if(message==='Retry scheduling failed')scheduleLogs++;}
+  },()=>{throw new Error('must not mount');});
+  assert.doesNotThrow(()=>runtime.retry());
+  for(let i=0;i<100;i++)assert.doesNotThrow(()=>observerCallback());
+  assert.equal(scheduleLogs,1);
+  runtime.dispose();
+}
 function scenario() {
   let home=true, ready=false, cache=false, now=0, mounts=0, destroyed=0;
   const callbacks=new Map(), timers=new Map(); let id=0;
@@ -22,6 +65,9 @@ function scenario() {
   runtime.dispose();runtime.dispose();assert.equal(callbacks.size,0);assert.equal(timers.size,0);
 }
 scenario();
+nativeReceiverTests();
+librarySectionTests();
+boundedFailureTests();
 async function directTests(){
   var requests=0,warnings=0,now=0,key='',failures=new Map();
   var runtime={failures,configure(value){if(value!==key){key=value;failures.clear();}}};

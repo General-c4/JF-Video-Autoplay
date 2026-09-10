@@ -54,7 +54,7 @@
   function sameItem(a, b){ return !!a && !!b && text(a.Id) === text(b.Id) && itemRevision(a) === itemRevision(b); }
   function createTrailerCache(options){
     options = options || {};
-    var now = options.now || Date.now;
+    var now = options.now || function () { return Date.now(); };
     var positiveTtl = options.positiveTtl || 300000;
     var negativeTtl = options.negativeTtl || 15000;
     var entries = Object.create(null);

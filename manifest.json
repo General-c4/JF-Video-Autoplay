@@ -9,12 +9,12 @@
     "imageUrl": "https://raw.githubusercontent.com/General-c4/JF-Video-Autoplay-Releases/main/Image/thumb-JF.png",
     "versions": [
       {
-        "version": "1.1.2.2",
-        "changelog": "- Experimental 1.1.2 RC2: Jellyfin Server 12 and .NET 10 compatibility\n- SPA/runtime and yt-direct recovery; loader cache and dependency-order regression fix\n- Revision-aware media cache refresh and lifecycle cleanup",
+        "version": "1.1.2.3",
+        "changelog": "- Experimental 1.1.2 RC3: fixes Jellyfin 12 illegal native timer invocation\n- Adds structural home-library discovery and Arabic محتواي compatibility\n- Preserves Jellyfin 10.11 layout compatibility and bounded SPA recovery",
         "targetAbi": "12.0.0.0",
-        "sourceUrl": "https://github.com/General-c4/JF-Video-Autoplay-Releases/releases/download/v1.1.2-rc2/Jellyfin.Plugin.VideoAutoplay.zip",
+        "sourceUrl": "https://github.com/General-c4/JF-Video-Autoplay-Releases/releases/download/v1.1.2-rc3/Jellyfin.Plugin.VideoAutoplay.zip",
         "checksum": "",
-        "timestamp": "2026-09-09T00:00:00.000Z"
+        "timestamp": "2026-09-09T15:00:00.000Z"
       }
     ]
   }

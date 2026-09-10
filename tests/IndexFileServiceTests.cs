@@ -16,7 +16,7 @@ public sealed class IndexFileServiceTests : IDisposable
         await File.WriteAllTextAsync(index, "<!doctype html><body><main>Jellyfin</main></body>", new UTF8Encoding(true));
         var service = new IndexFileService(_testRoot);
 
-        const string loader = "/VideoAutoplay/loader.js?v=1.1.2-rc2";
+        const string loader = "/VideoAutoplay/loader.js?v=1.1.2-rc3";
         var injected = await service.InjectAsync(index, loader, CancellationToken.None);
         Assert.True(injected.Success);
         Assert.True(injected.Changed);
@@ -48,7 +48,7 @@ public sealed class IndexFileServiceTests : IDisposable
         var index = Path.Combine(_testRoot, "index.html");
         await File.WriteAllTextAsync(index, $"<body><script plugin=\"VideoAutoplay\" defer=\"defer\" src=\"{oldLoader}\"></script></body>");
         var service = new IndexFileService(_testRoot);
-        const string currentLoader = "/VideoAutoplay/loader.js?v=1.1.2-rc2";
+        const string currentLoader = "/VideoAutoplay/loader.js?v=1.1.2-rc3";
 
         var upgraded = await service.InjectAsync(index, currentLoader, CancellationToken.None);
         var upgradedHtml = await File.ReadAllTextAsync(index);
@@ -67,7 +67,7 @@ public sealed class IndexFileServiceTests : IDisposable
 
     [Theory]
     [InlineData("/VideoAutoplay/loader.js")]
-    [InlineData("/VideoAutoplay/loader.js?v=1.1.2-rc2")]
+    [InlineData("/VideoAutoplay/loader.js?v=1.1.2-rc3")]
     public async Task RemovalRecognizesOldAndVersionedTags(string loader)
     {
         Directory.CreateDirectory(_testRoot);
@@ -108,7 +108,7 @@ public sealed class IndexFileServiceTests : IDisposable
         const string html = "<body><script src='/VideoAutoplay/loader.js'></script><script defer src='VideoAutoplay/loader.js?v=old'></script><script src='/base/VideoAutoplay/loader.js?v=1.1.1'></script><script src='/unrelated.js'></script></body>";
         await File.WriteAllTextAsync(index, html);
         var service = new IndexFileService(_testRoot);
-        Assert.True((await service.InjectAsync(index, "/VideoAutoplay/loader.js?v=1.1.2-rc2", CancellationToken.None)).Success);
+        Assert.True((await service.InjectAsync(index, "/VideoAutoplay/loader.js?v=1.1.2-rc3", CancellationToken.None)).Success);
         var updated = await File.ReadAllTextAsync(index);
         Assert.Equal(1, updated.Split("VideoAutoplay/loader.js").Length - 1);
         Assert.Contains("/unrelated.js", updated);
@@ -124,6 +124,50 @@ public sealed class IndexFileServiceTests : IDisposable
         var result = await service.InjectAsync(Path.Combine(_testRoot, "index.html"), "/loader.js", CancellationToken.None);
         Assert.False(result.Success);
         Assert.Equal("invalid_index_path", result.Error);
+    }
+
+    [Fact]
+    public async Task SuppliedJellyfin12IndexSupportsInjectionRemovalAndUpgradeReinjection()
+    {
+        var suppliedPath = Environment.GetEnvironmentVariable("VIDEOAUTOPLAY_JELLYFIN12_INDEX_FIXTURE");
+        if (string.IsNullOrWhiteSpace(suppliedPath))
+        {
+            return;
+        }
+
+        Assert.True(File.Exists(suppliedPath), $"Supplied Jellyfin 12 index fixture was not found: {suppliedPath}");
+        Directory.CreateDirectory(_testRoot);
+        var index = Path.Combine(_testRoot, "index.html");
+        File.Copy(suppliedPath, index);
+        var original = await File.ReadAllTextAsync(index);
+        const string previewTag = "<script plugin=\"InPlayerEpisodePreview\" version=\"1.3.1.0\" src=\"/InPlayerPreview/ClientScript\"></script>";
+        const string customTag = "<script plugin=\"CustomJavaScript\" defer=\"defer\">";
+        const string loader = "/VideoAutoplay/loader.js?v=1.1.2-rc3";
+        Assert.Contains("<div id=\"reactRoot\">", original, StringComparison.Ordinal);
+        Assert.Contains(previewTag, original, StringComparison.Ordinal);
+        Assert.Contains(customTag, original, StringComparison.Ordinal);
+
+        var service = new IndexFileService(_testRoot);
+        Assert.True((await service.InjectAsync(index, loader, CancellationToken.None)).Success);
+        Assert.False((await service.InjectAsync(index, loader, CancellationToken.None)).Changed);
+        var injected = await File.ReadAllTextAsync(index);
+        Assert.Equal(1, CountMarkers(injected));
+        Assert.True(injected.IndexOf(loader, StringComparison.Ordinal) < injected.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(previewTag, injected, StringComparison.Ordinal);
+        Assert.Contains(customTag, injected, StringComparison.Ordinal);
+
+        Assert.True((await service.RemoveAsync(index, CancellationToken.None)).Success);
+        var removed = await File.ReadAllTextAsync(index);
+        Assert.Equal(0, CountMarkers(removed));
+        Assert.Contains(previewTag, removed, StringComparison.Ordinal);
+        Assert.Contains(customTag, removed, StringComparison.Ordinal);
+
+        await File.WriteAllTextAsync(index, original);
+        Assert.True((await service.InjectAsync(index, loader, CancellationToken.None)).Success);
+        var reinjected = await File.ReadAllTextAsync(index);
+        Assert.Equal(1, CountMarkers(reinjected));
+        Assert.Contains(previewTag, reinjected, StringComparison.Ordinal);
+        Assert.Contains(customTag, reinjected, StringComparison.Ordinal);
     }
 
     public void Dispose()
